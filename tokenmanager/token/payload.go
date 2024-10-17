@@ -2,25 +2,20 @@ package token
 
 import (
 	"Third-Party-Multi-Factor-Authentication-System/tokenmanager/errors"
-	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
 type Payload struct {
-	ID        uuid.UUID `json:"id"`
-	Username  string    `json:"username"`
-	IssuedAt  time.Time `json:"issued_at"`
-	ExpiredAt time.Time `json:"expired_at"`
+	ID        primitive.ObjectID `json:"id"`
+	Username  string             `json:"username"`
+	IssuedAt  time.Time          `json:"issued_at"`
+	ExpiredAt time.Time          `json:"expired_at"`
 }
 
 func NewPayload(username string, duration time.Duration) (*Payload, error) {
-	tokenID, err := uuid.NewRandom()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Payload{
-		ID:        tokenID,
+		ID:        primitive.NewObjectID(),
 		Username:  username,
 		IssuedAt:  time.Now(),
 		ExpiredAt: time.Now().Add(duration),

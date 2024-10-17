@@ -1,6 +1,8 @@
 package api
 
 import (
+	"Third-Party-Multi-Factor-Authentication-System/db"
+	"Third-Party-Multi-Factor-Authentication-System/tokenmanager/token"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -10,12 +12,16 @@ import (
 )
 
 type Server struct {
-	router *gin.Engine
+	router     *gin.Engine
+	store      *db.Store
+	tokenMaker token.Maker
 }
 
-func NewServer() *Server {
+func NewServer(store *db.Store, tokenMaker token.Maker) *Server {
 	s := &Server{
-		router: gin.Default(),
+		router:     gin.Default(),
+		store:      store,
+		tokenMaker: tokenMaker,
 	}
 
 	registerCustomValidators()

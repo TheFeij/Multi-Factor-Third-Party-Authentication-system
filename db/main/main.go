@@ -3,6 +3,7 @@ package main
 import (
 	"Third-Party-Multi-Factor-Authentication-System/db"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -12,6 +13,8 @@ func main() {
 		panic(err)
 	}
 	defer s.Disconnect()
+
+	fmt.Println(primitive.NewObjectID())
 
 	user := db.User{
 		Username:  "john_doe",

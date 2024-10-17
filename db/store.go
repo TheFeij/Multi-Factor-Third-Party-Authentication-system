@@ -2,10 +2,13 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -64,6 +67,88 @@ func (s *Store) InsertUser(user *User) error {
 
 	fmt.Println("User inserted successfully")
 	return nil
+}
+
+func (s *Store) GetUser(id primitive.ObjectID) (*User, error) {
+	// Get the users collection from the database
+	collection := s.client.Database("your_database").Collection("users")
+
+	// Context for the query
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Variable to store the result
+	var user User
+
+	// Perform the query with FindOne
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	if err != nil {
+		// Return an error if the user is not found or another error occurs
+		return nil, err
+	}
+
+	// Return the found user
+	return &user, nil
+}
+
+func (s *Store) GetUserByUsernameAndPassword(username, password string) (*User, error) {
+	// Get the users collection from the database
+	collection := s.client.Database("your_database").Collection("users")
+
+	// Context for the query
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Variable to store the result
+	var user User
+
+	// Find the user by username
+	err := collection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
+	// Compare the provided password with the stored hashed password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, errors.New("invalid password")
+	}
+
+	// Return the found user
+	return &user, nil
+}
+
+func (s *Store) GetUserByEmailAndPassword(email, password string) (*User, error) {
+	// Get the users collection from the database
+	collection := s.client.Database("your_database").Collection("users")
+
+	// Context for the query
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Variable to store the result
+	var user User
+
+	// Find the user by email
+	err := collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
+	// Compare the provided password with the stored hashed password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, errors.New("invalid password")
+	}
+
+	// Return the found user
+	return &user, nil
 }
 
 func (s *Store) InsertActivityLog(log *ActivityLog) error {

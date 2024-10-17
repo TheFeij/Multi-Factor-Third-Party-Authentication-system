@@ -1,8 +1,10 @@
 package api
 
 import (
+	"Third-Party-Multi-Factor-Authentication-System/config"
 	"Third-Party-Multi-Factor-Authentication-System/db"
 	"Third-Party-Multi-Factor-Authentication-System/tokenmanager/token"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -15,13 +17,15 @@ type Server struct {
 	router     *gin.Engine
 	store      *db.Store
 	tokenMaker token.Maker
+	configs    *config.Config
 }
 
-func NewServer(store *db.Store, tokenMaker token.Maker) *Server {
+func NewServer(store *db.Store, tokenMaker token.Maker, configs *config.Config) *Server {
 	s := &Server{
 		router:     gin.Default(),
 		store:      store,
 		tokenMaker: tokenMaker,
+		configs:    configs,
 	}
 
 	registerCustomValidators()
@@ -32,10 +36,21 @@ func NewServer(store *db.Store, tokenMaker token.Maker) *Server {
 }
 
 func (s *Server) setupRouter() {
+	// CORS middleware configuration
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:63342"} // Update this with your frontend's origin
+	config.AllowMethods = []string{"GET", "POST", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type"}
+	config.AllowCredentials = true // Allow credentials if needed (e.g., cookies)
+
+	// Use the CORS middleware with the custom configuration
+	s.router.Use(cors.New(config))
+
 	s.router.GET("/", func(context *gin.Context) {
 		context.JSON(http.StatusOK, gin.H{"message": "Welcome"})
 	})
 	s.router.POST("/signup", s.Signup)
+	s.router.POST("/login", s.Login)
 }
 
 func (s *Server) StartServer(address string) error {

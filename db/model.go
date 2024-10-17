@@ -9,11 +9,9 @@ import (
 type User struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
 	Username  string             `bson:"username"`
-	Firstname string             `bson:"firstname"`
-	Lastname  string             `bson:"lastname"`
+	Name      string             `bson:"name"`
 	Email     string             `bson:"email"`
 	Password  string             `bson:"password"`
-	BirthDate time.Time          `bson:"birthdate"`
 	CreatedAt time.Time          `bson:"created_at"`
 	UpdatedAt time.Time          `bson:"updated_at"`
 	DeletedAt *time.Time         `bson:"deleted_at,omitempty"`

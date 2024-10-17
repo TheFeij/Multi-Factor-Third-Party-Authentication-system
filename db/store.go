@@ -1,6 +1,8 @@
 package db
 
 import (
+	"Third-Party-Multi-Factor-Authentication-System/config"
+	"Third-Party-Multi-Factor-Authentication-System/util"
 	"context"
 	"errors"
 	"fmt"
@@ -8,18 +10,16 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
 type Store struct {
-	client *mongo.Client
+	client  *mongo.Client
+	configs *config.Config
 }
 
-func NewStore() (*Store, error) {
-	// Set MongoDB URI
-	uri := "mongodb://localhost:27017" // Replace with your MongoDB URI
-	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+func NewStore(configs *config.Config) (*Store, error) {
+	client, err := mongo.NewClient(options.Client().ApplyURI(configs.DatabaseSource))
 	if err != nil {
 		return nil, err
 	}
@@ -41,12 +41,12 @@ func NewStore() (*Store, error) {
 
 	fmt.Println("Connected to MongoDB!")
 
-	return &Store{client: client}, nil
+	return &Store{client: client, configs: configs}, nil
 }
 
 func (s *Store) InsertUser(user *User) error {
 	// Get the users collection from the database
-	collection := s.client.Database("your_database").Collection("users")
+	collection := s.client.Database(s.configs.DatabaseName).Collection("users")
 
 	// Set CreatedAt and UpdatedAt fields before insertion
 	now := time.Now().UTC()
@@ -71,7 +71,7 @@ func (s *Store) InsertUser(user *User) error {
 
 func (s *Store) GetUser(id primitive.ObjectID) (*User, error) {
 	// Get the users collection from the database
-	collection := s.client.Database("your_database").Collection("users")
+	collection := s.client.Database(s.configs.DatabaseName).Collection("users")
 
 	// Context for the query
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -93,7 +93,7 @@ func (s *Store) GetUser(id primitive.ObjectID) (*User, error) {
 
 func (s *Store) GetUserByUsernameAndPassword(username, password string) (*User, error) {
 	// Get the users collection from the database
-	collection := s.client.Database("your_database").Collection("users")
+	collection := s.client.Database(s.configs.DatabaseName).Collection("users")
 
 	// Context for the query
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -112,7 +112,7 @@ func (s *Store) GetUserByUsernameAndPassword(username, password string) (*User, 
 	}
 
 	// Compare the provided password with the stored hashed password
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err = util.CheckPassword(password, user.Password)
 	if err != nil {
 		return nil, errors.New("invalid password")
 	}
@@ -123,7 +123,7 @@ func (s *Store) GetUserByUsernameAndPassword(username, password string) (*User, 
 
 func (s *Store) GetUserByEmailAndPassword(email, password string) (*User, error) {
 	// Get the users collection from the database
-	collection := s.client.Database("your_database").Collection("users")
+	collection := s.client.Database(s.configs.DatabaseName).Collection("users")
 
 	// Context for the query
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -142,7 +142,7 @@ func (s *Store) GetUserByEmailAndPassword(email, password string) (*User, error)
 	}
 
 	// Compare the provided password with the stored hashed password
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err = util.CheckPassword(password, user.Password)
 	if err != nil {
 		return nil, errors.New("invalid password")
 	}
@@ -153,7 +153,7 @@ func (s *Store) GetUserByEmailAndPassword(email, password string) (*User, error)
 
 func (s *Store) InsertActivityLog(log *ActivityLog) error {
 	// Get the activity_logs collection from the database
-	collection := s.client.Database("your_database").Collection("activity_logs")
+	collection := s.client.Database(s.configs.DatabaseName).Collection("activity_logs")
 
 	// Set CreatedAt and UpdatedAt fields before insertion
 	now := time.Now().UTC()
@@ -176,7 +176,7 @@ func (s *Store) InsertActivityLog(log *ActivityLog) error {
 
 func (s *Store) InsertSession(session *Session) error {
 	// Get the sessions collection from the database
-	collection := s.client.Database("your_database").Collection("sessions")
+	collection := s.client.Database(s.configs.DatabaseName).Collection("sessions")
 
 	// Set CreatedAt and UpdatedAt fields before insertion
 	now := time.Now().UTC()

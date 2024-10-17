@@ -2,29 +2,35 @@ package main
 
 import (
 	"Third-Party-Multi-Factor-Authentication-System/api"
+	"Third-Party-Multi-Factor-Authentication-System/config"
 	"Third-Party-Multi-Factor-Authentication-System/db"
 	"Third-Party-Multi-Factor-Authentication-System/tokenmanager/token"
-	"log"
+	"fmt"
 )
 
 func main() {
-	tokenMaker, err := token.NewPasetoMaker("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	configs, err := config.LoadConfig("./config", "config.json")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 
-	store, err := db.NewStore()
+	tokenMaker, err := token.NewPasetoMaker(configs.TokenSymmetricKey)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 
-	server := api.NewServer(store, tokenMaker)
+	store, err := db.NewStore(configs)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 
-	err = server.StartServer(":8080")
+	server := api.NewServer(store, tokenMaker, configs)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+	}
+
+	err = server.StartServer(configs.HTTPServer)
+	if err != nil {
+		fmt.Println(err)
 	}
 }

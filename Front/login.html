@@ -6,6 +6,17 @@
     <title>Login Page</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/htmx.org"></script>
+    <script>
+        document.addEventListener('htmx:configRequest', (event) => {
+            if (event.detail.elt.id === 'login-form') {
+                const formData = new FormData(document.getElementById('login-form'));
+                const jsonData = JSON.stringify(Object.fromEntries(formData));
+
+                event.detail.headers['Content-Type'] = 'application/json';
+                event.detail.parameters = JSON.parse(jsonData);
+            }
+        });
+    </script>
 </head>
 <body>
 <div class="container">

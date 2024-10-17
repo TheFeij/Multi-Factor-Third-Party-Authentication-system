@@ -3,6 +3,7 @@ module Third-Party-Multi-Factor-Authentication-System
 go 1.22.2
 
 require (
+	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/validator/v10 v10.20.0
 	github.com/o1egl/paseto v1.0.0

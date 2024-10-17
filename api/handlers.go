@@ -2,20 +2,29 @@ package api
 
 import (
 	"Third-Party-Multi-Factor-Authentication-System/db"
+	"Third-Party-Multi-Factor-Authentication-System/util"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
 )
 
 func (s *Server) Signup(context *gin.Context) {
-	var req *db.User
+	var req *SignupRequest
 
 	if err := context.ShouldBindJSON(&req); err != nil {
 		context.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	err := s.store.InsertUser(req)
+	user := ConvertSignupRequestToModel(req)
+	hashedPassword, err := util.HashPassword(req.Password)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	user.Password = hashedPassword
+
+	err = s.store.InsertUser(user)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -39,7 +48,7 @@ func (s *Server) Signup(context *gin.Context) {
 
 	session := &db.Session{
 		ID:           refreshTokenPayload.ID,
-		Username:     req.Username,
+		Username:     user.Username,
 		RefreshToken: refreshToken,
 		UserAgent:    context.Request.UserAgent(),
 		ClientIP:     context.ClientIP(),
@@ -54,22 +63,95 @@ func (s *Server) Signup(context *gin.Context) {
 		return
 	}
 
-	res := signupResponse{
+	res := SignupResponse{
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessTokenPayload.ExpiredAt,
 		RefreshToken:          refreshToken,
 		RefreshTokenExpiresAt: refreshTokenPayload.ExpiredAt,
 		SessionID:             session.ID,
 		UserInformation: UserInformation{
-			Username:  req.Username,
-			FullName:  req.Firstname,
-			Email:     req.Email,
-			CreatedAt: req.CreatedAt,
+			Username:  user.Username,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
 			UpdatedAt: time.Time{},
 			DeletedAt: time.Time{},
 		},
 	}
 	context.JSON(http.StatusOK, res)
+}
+
+func (s *Server) Login(context *gin.Context) {
+	var req *LoginRequest
+
+	if err := context.ShouldBindJSON(&req); err != nil {
+		context.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	var err error
+	req.Password, err = util.HashPassword(req.Password)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	_, err = s.store.GetUserByUsernameAndPassword(req.Username, req.Password)
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	context.HTML(http.StatusOK, "./../Front/topt.html", nil)
+
+	//accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
+	//	user.Username,
+	//	time.Minute*15,
+	//)
+	//if err != nil {
+	//	context.JSON(http.StatusInternalServerError, errorResponse(err))
+	//}
+	//
+	//refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(
+	//	user.Username,
+	//	time.Minute*60)
+	//if err != nil {
+	//	context.JSON(http.StatusInternalServerError, errorResponse(err))
+	//	return
+	//}
+	//
+	//session := &db.Session{
+	//	ID:           refreshTokenPayload.ID,
+	//	Username:     user.Username,
+	//	RefreshToken: refreshToken,
+	//	UserAgent:    context.Request.UserAgent(),
+	//	ClientIP:     context.ClientIP(),
+	//	IsBlocked:    false,
+	//	CreatedAt:    time.Now().UTC(),
+	//	ExpiresAt:    time.Now().UTC(),
+	//	DeletedAt:    nil,
+	//}
+	//err = s.store.InsertSession(session)
+	//if err != nil {
+	//	context.JSON(http.StatusInternalServerError, errorResponse(err))
+	//	return
+	//}
+	//
+	//res := SignupResponse{
+	//	AccessToken:           accessToken,
+	//	AccessTokenExpiresAt:  accessTokenPayload.ExpiredAt,
+	//	RefreshToken:          refreshToken,
+	//	RefreshTokenExpiresAt: refreshTokenPayload.ExpiredAt,
+	//	SessionID:             session.ID,
+	//	UserInformation: UserInformation{
+	//		Username:  user.Username,
+	//		Name:      user.Name,
+	//		Email:     user.Email,
+	//		CreatedAt: user.CreatedAt,
+	//		UpdatedAt: time.Time{},
+	//		DeletedAt: time.Time{},
+	//	},
+	//}
+	//context.JSON(http.StatusOK, res)
 }
 
 func errorResponse(err error) gin.H {

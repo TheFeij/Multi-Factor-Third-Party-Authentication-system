@@ -36,12 +36,14 @@ func NewServer(store *db.Store, tokenMaker token.Maker, configs *config.Config) 
 }
 
 func (s *Server) setupRouter() {
+	// Load HTML files
+	s.router.LoadHTMLGlob("static/*") // or s.router.LoadHTMLFiles("static/topt.html")
+
 	// CORS middleware configuration
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:63342"} // Update this with your frontend's origin
+	config.AllowOrigins = []string{"*"}
 	config.AllowMethods = []string{"GET", "POST", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type"}
-	config.AllowCredentials = true // Allow credentials if needed (e.g., cookies)
 
 	// Use the CORS middleware with the custom configuration
 	s.router.Use(cors.New(config))
@@ -51,6 +53,14 @@ func (s *Server) setupRouter() {
 	})
 	s.router.POST("/signup", s.Signup)
 	s.router.POST("/login", s.Login)
+
+	// Set up static files using the Static method
+	s.router.Static("/home", "./static")
+
+	// Handle requests that don't match any defined routes
+	s.router.NoRoute(func(c *gin.Context) {
+		c.Redirect(http.StatusPermanentRedirect, "/home")
+	})
 }
 
 func (s *Server) StartServer(address string) error {

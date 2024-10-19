@@ -88,20 +88,14 @@ func (s *Server) Login(context *gin.Context) {
 		return
 	}
 
-	var err error
-	req.Password, err = util.HashPassword(req.Password)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	_, err = s.store.GetUserByUsernameAndPassword(req.Username, req.Password)
+	user, err := s.store.GetUserByUsernameAndPassword(req.Username, req.Password)
 	if err != nil {
 		context.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 
-	context.HTML(http.StatusOK, "./../Front/topt.html", nil)
+	//context.HTML(http.StatusOK, "topt.html", nil)
+	context.JSON(http.StatusOK, user)
 
 	//accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
 	//	user.Username,

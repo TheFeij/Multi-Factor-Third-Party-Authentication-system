@@ -100,7 +100,7 @@ func (s *Store) GetUserByUsernameAndPassword(username, password string) (*User, 
 	defer cancel()
 
 	// Variable to store the result
-	var user User
+	var user *User
 
 	// Find the user by username
 	err := collection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
@@ -118,7 +118,7 @@ func (s *Store) GetUserByUsernameAndPassword(username, password string) (*User, 
 	}
 
 	// Return the found user
-	return &user, nil
+	return user, nil
 }
 
 func (s *Store) GetUserByEmailAndPassword(email, password string) (*User, error) {

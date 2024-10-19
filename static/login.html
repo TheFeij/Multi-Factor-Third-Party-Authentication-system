@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        async function handleLogin(event) {
+            event.preventDefault(); // Prevent the form from submitting the traditional way
+
+            // Get form data
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            // Prepare data to be sent in JSON format
+            const loginData = {
+                username: username,
+                password: password
+            };
+            debugger;
+
+            try {
+                // Send the login request using Fetch API
+                const response = await fetch('http://localhost:8080/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(loginData)
+                });
+                debugger;
+
+                // Handle the response
+                if (response.ok) {
+                    const result = await response.json();
+                    // Display success message or perform next action (e.g., load TOTP step)
+                    console.log('Login successful:', result);
+                    document.getElementById("totp-step").innerHTML = '<h3>TOTP Step (Enter your TOTP)</h3>';
+                } else {
+                    // Handle errors (e.g., wrong password)
+                    const error = await response.json();
+                    console.error('Login failed:', error);
+                    alert('Login failed: ' + error.message);
+                }
+            } catch (error) {
+                console.error('Error during login request:', error);
+                alert('An error occurred. Please try again later.');
+            }
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <div class="login-box">
+        <h2>Login</h2>
+        <!-- Step 1: Login Form -->
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="btn">Login</button>
+        </form>
+
+        <!-- Step 2: TOTP input will be dynamically loaded here after login -->
+        <div id="totp-step"></div>
+    </div>
+</div>
+</body>
+</html>

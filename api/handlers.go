@@ -96,56 +96,6 @@ func (s *Server) Login(context *gin.Context) {
 
 	//context.HTML(http.StatusOK, "topt.html", nil)
 	context.JSON(http.StatusOK, user)
-
-	//accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
-	//	user.Username,
-	//	time.Minute*15,
-	//)
-	//if err != nil {
-	//	context.JSON(http.StatusInternalServerError, errorResponse(err))
-	//}
-	//
-	//refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(
-	//	user.Username,
-	//	time.Minute*60)
-	//if err != nil {
-	//	context.JSON(http.StatusInternalServerError, errorResponse(err))
-	//	return
-	//}
-	//
-	//session := &db.Session{
-	//	ID:           refreshTokenPayload.ID,
-	//	Username:     user.Username,
-	//	RefreshToken: refreshToken,
-	//	UserAgent:    context.Request.UserAgent(),
-	//	ClientIP:     context.ClientIP(),
-	//	IsBlocked:    false,
-	//	CreatedAt:    time.Now().UTC(),
-	//	ExpiresAt:    time.Now().UTC(),
-	//	DeletedAt:    nil,
-	//}
-	//err = s.store.InsertSession(session)
-	//if err != nil {
-	//	context.JSON(http.StatusInternalServerError, errorResponse(err))
-	//	return
-	//}
-	//
-	//res := SignupResponse{
-	//	AccessToken:           accessToken,
-	//	AccessTokenExpiresAt:  accessTokenPayload.ExpiredAt,
-	//	RefreshToken:          refreshToken,
-	//	RefreshTokenExpiresAt: refreshTokenPayload.ExpiredAt,
-	//	SessionID:             session.ID,
-	//	UserInformation: UserInformation{
-	//		Username:  user.Username,
-	//		Name:      user.Name,
-	//		Email:     user.Email,
-	//		CreatedAt: user.CreatedAt,
-	//		UpdatedAt: time.Time{},
-	//		DeletedAt: time.Time{},
-	//	},
-	//}
-	//context.JSON(http.StatusOK, res)
 }
 
 func errorResponse(err error) gin.H {

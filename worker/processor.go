@@ -3,14 +3,13 @@ package worker
 import (
 	"Third-Party-Multi-Factor-Authentication-System/db"
 	"Third-Party-Multi-Factor-Authentication-System/email"
+	"Third-Party-Multi-Factor-Authentication-System/util"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/hibiken/asynq"
 	"go.mongodb.org/mongo-driver/mongo"
-	"math"
-	"math/rand"
 )
 
 const (
@@ -60,7 +59,7 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 	verifyEmail := &db.VerifyEmails{
 		Username:   user.Username,
 		Email:      user.Email,
-		SecretCode: fmt.Sprintf("%v", rand.Int63n(math.MaxInt64)),
+		SecretCode: util.RandomString(16, util.ALL),
 	}
 	err = p.Store.InsertVerifyEmail(verifyEmail)
 	if err != nil {

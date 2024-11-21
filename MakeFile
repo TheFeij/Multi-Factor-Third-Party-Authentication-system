@@ -4,3 +4,9 @@ mongo-db:
 		-p 27017:27017 \
 		-v mongodb_data:/data/db \
 		mongo
+
+
+mongo-key-file:
+	openssl rand -base64 756 > mongodb-keyfile
+	chmod 600 mongodb-keyfile
+

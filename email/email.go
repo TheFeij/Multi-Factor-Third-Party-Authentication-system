@@ -29,6 +29,7 @@ func (sender *EmailSender) SendEmail(subject, content string, to, cc, bcc, attac
 	e.Bcc = bcc
 	e.Cc = cc
 	e.Subject = subject
+	e.HTML = []byte(content)
 
 	for _, file := range attachFiles {
 		_, err := e.AttachFile(file)

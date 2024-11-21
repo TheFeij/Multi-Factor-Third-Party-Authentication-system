@@ -1,55 +1,60 @@
-version: '3.8'
-
 networks:
   mfa_network:
     driver: bridge
 
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      MONGO_URI: "mongodb://mongo:27017/mfa_db?replicaSet=rs0"
-      REDIS_URL: "redis://redis:6379"
-    depends_on:
-      - mongo
-      - redis
-    networks:
-      - mfa_network
+#  app:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8080:8080"
+#    depends_on:
+#      mongo:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+#    networks:
+#      - mfa_network
 
   mongo:
-    image: mongo:6.0
+    build:
+      context: .
+      dockerfile: Mongodb-Dockerfile
     container_name: mongodb
     ports:
       - "27017:27017"
-    command: >
-      mongod --replSet rs0 --bind_ip_all
+    restart: always
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: admin
+        MONGO_INITDB_ROOT_PASSWORD: password
+    command: --replSet rs0 --keyFile /etc/mongo-keyfile --bind_ip_all --port 27017
+    healthcheck:
+      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]}) }" | mongosh --port 27017 -u admin -p password --authenticationDatabase admin
+      interval: 5s
+      timeout: 15s
+      start_period: 15s
+      retries: 5
     volumes:
       - mongo_data:/data/db
-    networks:
-      - mfa_network
-
-  mongo-init-replica:
-    image: mongo:6.0
-    depends_on:
-      - mongo
-    entrypoint: >
-      bash -c "sleep 5 && mongo --host mongo:27017 --eval 'rs.initiate({_id: \"rs0\", members: [{_id: 0, host: \"mongo:27017\"}]})'"
-    networks:
-      - mfa_network
+#    networks:
+#      - mfa_network
 
   redis:
-    image: redis:7.0
+    image: redis:7-alpine
     container_name: redis
     ports:
       - "6379:6379"
+    mem_limit: 256m
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
     volumes:
       - redis_data:/data
-    networks:
-      - mfa_network
+#    networks:
+#      - mfa_network
 
 volumes:
   mongo_data:

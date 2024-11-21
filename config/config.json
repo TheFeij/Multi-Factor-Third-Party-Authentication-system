@@ -1,5 +1,5 @@
 {
-  "ENVIRONMENT": "environment",
+  "ENVIRONMENT": "development",
   "DATABASE_SOURCE": "mongodb://localhost:27017",
   "DATABASE_NAME": "MFA",
   "HTTP_SERVER": "127.0.0.1:8080",

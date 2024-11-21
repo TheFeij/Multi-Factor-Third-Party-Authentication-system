@@ -1,6 +1,6 @@
 {
   "ENVIRONMENT": "development",
-  "DATABASE_SOURCE": "mongodb://root:root@localhost:27017/MFA?replicaSet=rs0&authSource=admin",
+  "DATABASE_SOURCE": "mongodb://admin:password@localhost:27017/MFA?replicaSet=rs0&authSource=admin",
   "DATABASE_NAME": "MFA",
   "HTTP_SERVER": "0.0.0.0:8080",
   "TOKEN_SYMMETRIC_KEY": "b11c02e9fdbe667e1997c7cfc2941928",

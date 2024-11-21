@@ -1,0 +1,56 @@
+version: '3.8'
+
+networks:
+  mfa_network:
+    driver: bridge
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      MONGO_URI: "mongodb://mongo:27017/mfa_db?replicaSet=rs0"
+      REDIS_URL: "redis://redis:6379"
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - mfa_network
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    command: >
+      mongod --replSet rs0 --bind_ip_all
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - mfa_network
+
+  mongo-init-replica:
+    image: mongo:6.0
+    depends_on:
+      - mongo
+    entrypoint: >
+      bash -c "sleep 5 && mongo --host mongo:27017 --eval 'rs.initiate({_id: \"rs0\", members: [{_id: 0, host: \"mongo:27017\"}]})'"
+    networks:
+      - mfa_network
+
+  redis:
+    image: redis:7.0
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mfa_network
+
+volumes:
+  mongo_data:
+  redis_data:

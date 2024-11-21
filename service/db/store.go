@@ -1,8 +1,8 @@
 package db
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/config"
-	"Third-Party-Multi-Factor-Authentication-System/util"
+	"Third-Party-Multi-Factor-Authentication-System/service/config"
+	"Third-Party-Multi-Factor-Authentication-System/service/util"
 	"context"
 	"errors"
 	"fmt"
@@ -40,7 +40,7 @@ func NewStore(configs *config.Config) (*Store, error) {
 		return nil, err
 	}
 
-	fmt.Println("Connected to MongoDB!")
+	log.Info().Msg("Connected to mongoDB successfully")
 
 	return &Store{Client: client, configs: configs}, nil
 }

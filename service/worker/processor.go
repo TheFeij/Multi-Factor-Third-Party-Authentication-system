@@ -1,9 +1,9 @@
 package worker
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/db"
-	"Third-Party-Multi-Factor-Authentication-System/email"
-	"Third-Party-Multi-Factor-Authentication-System/util"
+	db2 "Third-Party-Multi-Factor-Authentication-System/service/db"
+	"Third-Party-Multi-Factor-Authentication-System/service/email"
+	"Third-Party-Multi-Factor-Authentication-System/service/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -20,11 +20,11 @@ const (
 
 type RedisTaskProcessor struct {
 	Server      *asynq.Server
-	Store       *db.Store
+	Store       *db2.Store
 	EmailSender *email.EmailSender
 }
 
-func NewRedisTaskProcessor(opt *asynq.RedisClientOpt, store *db.Store, emailSender *email.EmailSender) *RedisTaskProcessor {
+func NewRedisTaskProcessor(opt *asynq.RedisClientOpt, store *db2.Store, emailSender *email.EmailSender) *RedisTaskProcessor {
 	server := asynq.NewServer(opt, asynq.Config{
 		Queues: map[string]int{
 			CriticalQueue: 10,
@@ -58,7 +58,7 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 	}
 
 	log.Info().Msg(fmt.Sprintf("sending verfication email to %v", user.Email))
-	verifyEmail := &db.VerifyEmails{
+	verifyEmail := &db2.VerifyEmails{
 		Username:   user.Username,
 		Email:      user.Email,
 		SecretCode: util.RandomString(16, util.ALL),

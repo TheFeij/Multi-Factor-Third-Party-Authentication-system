@@ -1,10 +1,10 @@
 package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/config"
-	"Third-Party-Multi-Factor-Authentication-System/db"
-	"Third-Party-Multi-Factor-Authentication-System/tokenmanager/token"
-	"Third-Party-Multi-Factor-Authentication-System/worker"
+	"Third-Party-Multi-Factor-Authentication-System/service/config"
+	"Third-Party-Multi-Factor-Authentication-System/service/db"
+	"Third-Party-Multi-Factor-Authentication-System/service/tokenmanager/token"
+	"Third-Party-Multi-Factor-Authentication-System/service/worker"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"

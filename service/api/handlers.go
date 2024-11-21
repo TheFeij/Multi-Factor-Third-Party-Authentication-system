@@ -1,9 +1,9 @@
 package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/db"
-	"Third-Party-Multi-Factor-Authentication-System/util"
-	"Third-Party-Multi-Factor-Authentication-System/worker"
+	"Third-Party-Multi-Factor-Authentication-System/service/db"
+	"Third-Party-Multi-Factor-Authentication-System/service/util"
+	worker2 "Third-Party-Multi-Factor-Authentication-System/service/worker"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
@@ -41,11 +41,11 @@ func (s *Server) Signup(ctx *gin.Context) {
 		}
 
 		// Step 4: Enqueue the task for sending the verification email
-		taskPayload := &worker.SendVerificationEmailPayload{Username: user.Username}
+		taskPayload := &worker2.SendVerificationEmailPayload{Username: user.Username}
 		opts := []asynq.Option{
 			asynq.MaxRetry(10),
 			asynq.ProcessIn(time.Second),
-			asynq.Queue(worker.CriticalQueue),
+			asynq.Queue(worker2.CriticalQueue),
 		}
 		err = s.taskDistributor.SendVerificationEmail(sessCtx, taskPayload, opts...)
 		if err != nil {

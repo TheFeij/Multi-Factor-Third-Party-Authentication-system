@@ -1,7 +1,7 @@
 package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/db"
+	"Third-Party-Multi-Factor-Authentication-System/service/db"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )

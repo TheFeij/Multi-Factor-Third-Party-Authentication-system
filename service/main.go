@@ -1,12 +1,12 @@
 package main
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/api"
-	"Third-Party-Multi-Factor-Authentication-System/config"
-	"Third-Party-Multi-Factor-Authentication-System/db"
-	"Third-Party-Multi-Factor-Authentication-System/email"
-	"Third-Party-Multi-Factor-Authentication-System/tokenmanager/token"
-	"Third-Party-Multi-Factor-Authentication-System/worker"
+	"Third-Party-Multi-Factor-Authentication-System/service/api"
+	"Third-Party-Multi-Factor-Authentication-System/service/config"
+	"Third-Party-Multi-Factor-Authentication-System/service/db"
+	"Third-Party-Multi-Factor-Authentication-System/service/email"
+	"Third-Party-Multi-Factor-Authentication-System/service/tokenmanager/token"
+	worker2 "Third-Party-Multi-Factor-Authentication-System/service/worker"
 	"fmt"
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog"
@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	configs, err := config.LoadConfig("./config", "config.json")
+	configs, err := config.LoadConfig("./service/config", "config.json")
 	if err != nil {
 		panic(fmt.Sprintf("could not load configs: %v", err.Error()))
 	}
@@ -28,7 +28,7 @@ func main() {
 		Addr: configs.RedisAddress,
 	}
 
-	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
+	taskDistributor := worker2.NewRedisTaskDistributor(redisOpt)
 
 	tokenMaker, err := token.NewPasetoMaker(configs.TokenSymmetricKey)
 	if err != nil {
@@ -66,7 +66,7 @@ func main() {
 }
 
 func StartTaskProcessor(opt *asynq.RedisClientOpt, store *db.Store, emailSender *email.EmailSender) error {
-	taskProcessor := worker.NewRedisTaskProcessor(opt, store, emailSender)
+	taskProcessor := worker2.NewRedisTaskProcessor(opt, store, emailSender)
 	err := taskProcessor.Start()
 	return err
 }

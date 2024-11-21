@@ -1,7 +1,7 @@
 package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/util"
+	"Third-Party-Multi-Factor-Authentication-System/service/util"
 	"github.com/go-playground/validator/v10"
 )
 

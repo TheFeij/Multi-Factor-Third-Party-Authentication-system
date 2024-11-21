@@ -1,7 +1,6 @@
 package token
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/tokenmanager/errors"
 	"fmt"
 	"github.com/o1egl/paseto"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -39,12 +38,12 @@ func (maker *PasetoMaker) VerifyToken(token string) (*Payload, error) {
 
 	err := maker.paseto.Decrypt(token, maker.symmetricKey, payload, nil)
 	if err != nil {
-		return nil, errors.ErrInvalidToken
+		return nil, ErrInvalidToken
 	}
 
 	err = payload.Valid()
 	if err != nil {
-		return nil, errors.ErrExpiredToken
+		return nil, ErrExpiredToken
 	}
 
 	return payload, nil

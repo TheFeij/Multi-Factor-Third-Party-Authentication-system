@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hibiken/asynq"
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -30,8 +31,9 @@ func NewRedisTaskProcessor(opt *asynq.RedisClientOpt, store *db.Store, emailSend
 			DefaultQueue:  5,
 		},
 		ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
-			fmt.Println("error happened")
+			log.Error().Err(err).Str("type", task.Type()).Str("payload", string(task.Payload())).Msg("process task failed")
 		}),
+		Logger: NewLogger(),
 	})
 
 	return &RedisTaskProcessor{
@@ -55,7 +57,7 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 		return fmt.Errorf("failed to get user from database: %w", err)
 	}
 
-	fmt.Println("send verification message")
+	log.Info().Msg(fmt.Sprintf("sending verfication email to %v", user.Email))
 	verifyEmail := &db.VerifyEmails{
 		Username:   user.Username,
 		Email:      user.Email,
@@ -78,6 +80,7 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 		return err
 	}
 
+	log.Info().Msg(fmt.Sprintf("verification email was sent to %v successfully", user.Email))
 	return nil
 }
 

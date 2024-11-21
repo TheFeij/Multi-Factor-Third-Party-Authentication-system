@@ -9,9 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-	"log"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"net/http/httptest"
+	"time"
 )
 
 type Server struct {
@@ -24,7 +25,7 @@ type Server struct {
 
 func NewServer(store *db.Store, tokenMaker token.Maker, configs *config.Config, taskDistributor *worker.RedisTaskDistributor) *Server {
 	s := &Server{
-		router:          gin.Default(),
+		router:          gin.New(),
 		store:           store,
 		tokenMaker:      tokenMaker,
 		configs:         configs,
@@ -39,6 +40,9 @@ func NewServer(store *db.Store, tokenMaker token.Maker, configs *config.Config, 
 }
 
 func (s *Server) setupRouter() {
+	s.router.Use(gin.Recovery())
+	s.router.Use(logMiddleware)
+
 	// CORS middleware configuration
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"*"}
@@ -54,9 +58,6 @@ func (s *Server) setupRouter() {
 	s.router.POST("/signup", s.Signup)
 	s.router.POST("/login", s.Login)
 
-	// Set up static files using the Static method
-	s.router.Static("/home", "./static")
-
 	// Handle requests that don't match any defined routes
 	s.router.NoRoute(func(c *gin.Context) {
 		c.Redirect(http.StatusPermanentRedirect, "/home")
@@ -70,13 +71,13 @@ func (s *Server) StartServer(address string) error {
 func registerCustomValidators() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		if err := v.RegisterValidation("validUsername", ValidUsername); err != nil {
-			log.Fatal("could not register validUsername validator")
+			log.Fatal().Msg("could not register validUsername validator")
 		}
 		if err := v.RegisterValidation("validPassword", ValidPassword); err != nil {
-			log.Fatal("could not register validPassword validator")
+			log.Fatal().Msg("could not register validPassword validator")
 		}
 		if err := v.RegisterValidation("validFullname", ValidFullname); err != nil {
-			log.Fatal("could not register validFullname validator")
+			log.Fatal().Msg("could not register validFullname validator")
 		}
 	}
 }
@@ -87,4 +88,19 @@ func (s *Server) Start(address string) error {
 
 func (s *Server) RouterServeHTTP(recorder *httptest.ResponseRecorder, req *http.Request) {
 	s.router.ServeHTTP(recorder, req)
+}
+
+var logMiddleware = func(c *gin.Context) {
+	start := time.Now()
+
+	// Process request
+	c.Next()
+
+	// Log request details
+	log.Info().
+		Str("method", c.Request.Method).
+		Str("path", c.Request.URL.Path).
+		Int("status", c.Writer.Status()).
+		Dur("duration", time.Since(start)).
+		Msg("request handled")
 }

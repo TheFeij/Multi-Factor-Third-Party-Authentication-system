@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -88,7 +89,7 @@ func (s *Store) InsertUserWithSession(sessCtx mongo.SessionContext, user *User) 
 	// Set the inserted ID back to the user
 	user.ID = result.InsertedID.(primitive.ObjectID)
 
-	fmt.Println("User inserted successfully within transaction")
+	log.Info().Msg(fmt.Sprintf("user inserted to the database: %v", user))
 	return nil
 }
 
@@ -113,7 +114,7 @@ func (s *Store) InsertVerifyEmail(verifyEmail *VerifyEmails) error {
 
 	verifyEmail.ID = result.InsertedID.(primitive.ObjectID)
 
-	fmt.Println("Verify Email inserted successfully")
+	log.Info().Msg(fmt.Sprintf("verify email inserted to the database: %v", verifyEmail))
 	return nil
 }
 
@@ -265,7 +266,7 @@ func (s *Store) InsertSession(session *Session) error {
 	// Retrieve the inserted ID and update the session ID with it
 	session.ID = result.InsertedID.(primitive.ObjectID) // Convert the inserted ID to ObjectID
 
-	fmt.Println("Session inserted successfully with ID:", session.ID)
+	log.Info().Msg(fmt.Sprintf("session inserted to the database successfully: %v", session))
 	return nil
 }
 

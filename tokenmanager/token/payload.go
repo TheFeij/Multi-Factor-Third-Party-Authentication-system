@@ -1,7 +1,6 @@
 package token
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/tokenmanager/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
@@ -24,7 +23,7 @@ func NewPayload(username string, duration time.Duration) (*Payload, error) {
 
 func (p *Payload) Valid() error {
 	if time.Now().After(p.ExpiredAt) {
-		return errors.ErrExpiredToken
+		return ErrExpiredToken
 	}
 	return nil
 }

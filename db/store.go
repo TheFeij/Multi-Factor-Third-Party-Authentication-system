@@ -25,7 +25,7 @@ func NewStore(configs *config.Config) (*Store, error) {
 	}
 
 	// Connect to MongoDB
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	err = client.Connect(ctx)

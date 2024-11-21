@@ -1,22 +1,4 @@
-networks:
-  mfa_network:
-    driver: bridge
-
 services:
-#  app:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    ports:
-#      - "8080:8080"
-#    depends_on:
-#      mongo:
-#        condition: service_healthy
-#      redis:
-#        condition: service_healthy
-#    networks:
-#      - mfa_network
-
   mongo:
     build:
       context: .
@@ -26,36 +8,17 @@ services:
       - "27017:27017"
     restart: always
     environment:
-        MONGO_INITDB_ROOT_USERNAME: admin
-        MONGO_INITDB_ROOT_PASSWORD: password
+        MONGO_INITDB_ROOT_USERNAME: root
+        MONGO_INITDB_ROOT_PASSWORD: root
     command: --replSet rs0 --keyFile /etc/mongo-keyfile --bind_ip_all --port 27017
     healthcheck:
-      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]}) }" | mongosh --port 27017 -u admin -p password --authenticationDatabase admin
+      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]}) }" | mongosh --port 27017 -u root -p root --authenticationDatabase admin
       interval: 5s
       timeout: 15s
       start_period: 15s
-      retries: 5
+      retries: 10
     volumes:
-      - mongo_data:/data/db
-#    networks:
-#      - mfa_network
-
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    mem_limit: 256m
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-    volumes:
-      - redis_data:/data
-#    networks:
-#      - mfa_network
+      - data:/data/db
 
 volumes:
-  mongo_data:
-  redis_data:
+  data: {}

@@ -39,9 +39,6 @@ func NewServer(store *db.Store, tokenMaker token.Maker, configs *config.Config, 
 }
 
 func (s *Server) setupRouter() {
-	// Load HTML files
-	s.router.LoadHTMLGlob("static/*") // or s.router.LoadHTMLFiles("static/topt.html")
-
 	// CORS middleware configuration
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"*"}

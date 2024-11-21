@@ -66,7 +66,7 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 		return err
 	}
 
-	verifyUrl := fmt.Sprintf("localhost:8080?id=%s&secret_code=%s", verifyEmail.ID, verifyEmail.SecretCode)
+	verifyUrl := fmt.Sprintf("api:8080?id=%s&secret_code=%s", verifyEmail.ID, verifyEmail.SecretCode)
 	content := fmt.Sprintf(`
 		Hello %s,<br/>
 		Thank You For Registering With Us!<br/>

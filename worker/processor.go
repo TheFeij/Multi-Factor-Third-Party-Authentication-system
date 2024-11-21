@@ -2,25 +2,43 @@ package worker
 
 import (
 	"Third-Party-Multi-Factor-Authentication-System/db"
+	"Third-Party-Multi-Factor-Authentication-System/email"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/hibiken/asynq"
 	"go.mongodb.org/mongo-driver/mongo"
+	"math"
+	"math/rand"
+)
+
+const (
+	CriticalQueue = "critical"
+	DefaultQueue  = "default"
 )
 
 type RedisTaskProcessor struct {
-	Server *asynq.Server
-	Store  *db.Store
+	Server      *asynq.Server
+	Store       *db.Store
+	EmailSender *email.EmailSender
 }
 
-func NewRedisTaskProcessor(opt *asynq.RedisClientOpt, store *db.Store) *RedisTaskProcessor {
-	server := asynq.NewServer(opt, asynq.Config{})
+func NewRedisTaskProcessor(opt *asynq.RedisClientOpt, store *db.Store, emailSender *email.EmailSender) *RedisTaskProcessor {
+	server := asynq.NewServer(opt, asynq.Config{
+		Queues: map[string]int{
+			CriticalQueue: 10,
+			DefaultQueue:  5,
+		},
+		ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
+			fmt.Println("error happened")
+		}),
+	})
 
 	return &RedisTaskProcessor{
-		Server: server,
-		Store:  store,
+		Server:      server,
+		Store:       store,
+		EmailSender: emailSender,
 	}
 }
 
@@ -30,7 +48,7 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
 	}
 
-	_, err := p.Store.GetUserByUsernameAndPassword(payload.Username, "")
+	user, err := p.Store.GetUserByUsernameAndPassword(payload.Username, "")
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return fmt.Errorf("user does not exists: %w", asynq.SkipRetry)
@@ -39,6 +57,27 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 	}
 
 	fmt.Println("send verification message")
+	verifyEmail := &db.VerifyEmails{
+		Username:   user.Username,
+		Email:      user.Email,
+		SecretCode: fmt.Sprintf("%v", rand.Int63n(math.MaxInt64)),
+	}
+	err = p.Store.InsertVerifyEmail(verifyEmail)
+	if err != nil {
+		return err
+	}
+
+	verifyUrl := fmt.Sprintf("localhost:8080?id=%s&secret_code=%s", verifyEmail.ID, verifyEmail.SecretCode)
+	content := fmt.Sprintf(`
+		Hello %s,<br/>
+		Thank You For Registering With Us!<br/>
+		Please <a href="%s">Click Here</a> To Verfiy Your Account
+	`, user.Username, verifyUrl)
+	to := []string{user.Email}
+	err = p.EmailSender.SendEmail("Welcome To Authenticator", content, to, nil, nil, nil)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

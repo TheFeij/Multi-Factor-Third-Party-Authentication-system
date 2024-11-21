@@ -4,6 +4,7 @@ import (
 	"Third-Party-Multi-Factor-Authentication-System/config"
 	"Third-Party-Multi-Factor-Authentication-System/db"
 	"Third-Party-Multi-Factor-Authentication-System/tokenmanager/token"
+	"Third-Party-Multi-Factor-Authentication-System/worker"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -14,18 +15,20 @@ import (
 )
 
 type Server struct {
-	router     *gin.Engine
-	store      *db.Store
-	tokenMaker token.Maker
-	configs    *config.Config
+	router          *gin.Engine
+	store           *db.Store
+	tokenMaker      token.Maker
+	configs         *config.Config
+	taskDistributor *worker.RedisTaskDistributor
 }
 
-func NewServer(store *db.Store, tokenMaker token.Maker, configs *config.Config) *Server {
+func NewServer(store *db.Store, tokenMaker token.Maker, configs *config.Config, taskDistributor *worker.RedisTaskDistributor) *Server {
 	s := &Server{
-		router:     gin.Default(),
-		store:      store,
-		tokenMaker: tokenMaker,
-		configs:    configs,
+		router:          gin.Default(),
+		store:           store,
+		tokenMaker:      tokenMaker,
+		configs:         configs,
+		taskDistributor: taskDistributor,
 	}
 
 	registerCustomValidators()

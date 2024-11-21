@@ -14,7 +14,7 @@ import (
 )
 
 type Store struct {
-	client  *mongo.Client
+	Client  *mongo.Client
 	configs *config.Config
 }
 
@@ -41,12 +41,12 @@ func NewStore(configs *config.Config) (*Store, error) {
 
 	fmt.Println("Connected to MongoDB!")
 
-	return &Store{client: client, configs: configs}, nil
+	return &Store{Client: client, configs: configs}, nil
 }
 
 func (s *Store) InsertUser(user *User) error {
 	// Get the users collection from the database
-	collection := s.client.Database(s.configs.DatabaseName).Collection("users")
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("users")
 
 	// Set CreatedAt and UpdatedAt fields before insertion
 	now := time.Now().UTC()
@@ -69,9 +69,57 @@ func (s *Store) InsertUser(user *User) error {
 	return nil
 }
 
+func (s *Store) InsertUserWithSession(sessCtx mongo.SessionContext, user *User) error {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("users")
+
+	// Set CreatedAt and UpdatedAt fields before insertion
+	now := time.Now().UTC()
+	user.CreatedAt = now
+	user.UpdatedAt = now
+	user.DeletedAt = nil // Initial value is nil for DeletedAt
+
+	// Insert the user document
+	result, err := collection.InsertOne(sessCtx, user)
+	if err != nil {
+		return err
+	}
+
+	// Set the inserted ID back to the user
+	user.ID = result.InsertedID.(primitive.ObjectID)
+
+	fmt.Println("User inserted successfully within transaction")
+	return nil
+}
+
+func (s *Store) InsertVerifyEmail(verifyEmail *VerifyEmails) error {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("verify_email")
+
+	// Set CreatedAt and UpdatedAt fields before insertion
+	now := time.Now().UTC()
+	verifyEmail.CreatedAt = now
+	verifyEmail.ExpiredAt = now.Add(15 * time.Minute)
+	verifyEmail.IsUsed = false
+
+	// Insert the user document
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.InsertOne(ctx, verifyEmail)
+	if err != nil {
+		return err
+	}
+
+	verifyEmail.ID = result.InsertedID.(primitive.ObjectID)
+
+	fmt.Println("Verify Email inserted successfully")
+	return nil
+}
+
 func (s *Store) GetUser(id primitive.ObjectID) (*User, error) {
 	// Get the users collection from the database
-	collection := s.client.Database(s.configs.DatabaseName).Collection("users")
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("users")
 
 	// Context for the query
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -93,7 +141,7 @@ func (s *Store) GetUser(id primitive.ObjectID) (*User, error) {
 
 func (s *Store) GetUserByUsernameAndPassword(username, password string) (*User, error) {
 	// Get the users collection from the database
-	collection := s.client.Database(s.configs.DatabaseName).Collection("users")
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("users")
 
 	// Context for the query
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -123,7 +171,7 @@ func (s *Store) GetUserByUsernameAndPassword(username, password string) (*User, 
 
 func (s *Store) GetUserByEmailAndPassword(email, password string) (*User, error) {
 	// Get the users collection from the database
-	collection := s.client.Database(s.configs.DatabaseName).Collection("users")
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("users")
 
 	// Context for the query
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -153,7 +201,7 @@ func (s *Store) GetUserByEmailAndPassword(email, password string) (*User, error)
 
 func (s *Store) InsertActivityLog(log *ActivityLog) error {
 	// Get the activity_logs collection from the database
-	collection := s.client.Database(s.configs.DatabaseName).Collection("activity_logs")
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("activity_logs")
 
 	// Set CreatedAt and UpdatedAt fields before insertion
 	now := time.Now().UTC()
@@ -176,7 +224,7 @@ func (s *Store) InsertActivityLog(log *ActivityLog) error {
 
 func (s *Store) InsertSession(session *Session) error {
 	// Get the sessions collection from the database
-	collection := s.client.Database(s.configs.DatabaseName).Collection("sessions")
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("sessions")
 
 	// Set CreatedAt and UpdatedAt fields before insertion
 	now := time.Now().UTC()
@@ -200,5 +248,5 @@ func (s *Store) InsertSession(session *Session) error {
 }
 
 func (s *Store) Disconnect() {
-	s.client.Disconnect(context.TODO())
+	s.Client.Disconnect(context.TODO())
 }

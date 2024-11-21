@@ -7,14 +7,25 @@ import (
 
 // User model with BSON tags
 type User struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
-	Username  string             `bson:"username"`
-	Name      string             `bson:"name"`
-	Email     string             `bson:"email"`
-	Password  string             `bson:"password"`
-	CreatedAt time.Time          `bson:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at"`
-	DeletedAt *time.Time         `bson:"deleted_at,omitempty"`
+	ID              primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
+	Username        string             `bson:"username"`
+	Name            string             `bson:"name"`
+	Email           string             `bson:"email"`
+	Password        string             `bson:"password"`
+	CreatedAt       time.Time          `bson:"created_at"`
+	UpdatedAt       time.Time          `bson:"updated_at"`
+	DeletedAt       *time.Time         `bson:"deleted_at,omitempty"`
+	IsEmailVerified bool               `bson:"is_email_verified"`
+}
+
+type VerifyEmails struct {
+	ID         primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
+	Username   string             `bson:"username"`
+	Email      string             `bson:"email"`
+	SecretCode string             `bson:"secret_code"`
+	IsUsed     bool               `bson:"is_used"`
+	CreatedAt  time.Time          `bson:"created_at"`
+	ExpiredAt  time.Time          `bson:"expired_at"`
 }
 
 // ActivityLog model with BSON tags
@@ -32,7 +43,7 @@ type Session struct {
 	Username     string             `bson:"username"`             // Username for the session
 	RefreshToken string             `bson:"refresh_token"`        // Token used to refresh the session
 	UserAgent    string             `bson:"user_agent"`           // User agent info
-	ClientIP     string             `bson:"client_ip"`            // IP address of the client
+	ClientIP     string             `bson:"client_ip"`            // IP address of the Client
 	IsBlocked    bool               `bson:"is_blocked"`           // Indicates if the session is blocked
 	CreatedAt    time.Time          `bson:"created_at"`           // Session creation time
 	ExpiresAt    time.Time          `bson:"expires_at"`           // Expiration time for the session

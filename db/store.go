@@ -272,3 +272,19 @@ func (s *Store) InsertSession(session *Session) error {
 func (s *Store) Disconnect() {
 	s.Client.Disconnect(context.TODO())
 }
+
+func (s *Store) Transaction(ctx context.Context, callback func(sessCtx mongo.SessionContext) (interface{}, error)) error {
+	// Start a MongoDB session for the transaction
+	session, err := s.Client.StartSession()
+	if err != nil {
+		return err
+	}
+	defer session.EndSession(ctx)
+
+	_, err = session.WithTransaction(ctx, callback)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

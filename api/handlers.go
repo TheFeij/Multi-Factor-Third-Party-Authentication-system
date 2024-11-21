@@ -1,6 +1,7 @@
 package api
 
 import (
+	"Third-Party-Multi-Factor-Authentication-System/db"
 	"Third-Party-Multi-Factor-Authentication-System/util"
 	"Third-Party-Multi-Factor-Authentication-System/worker"
 	"fmt"
@@ -20,16 +21,9 @@ func (s *Server) Signup(ctx *gin.Context) {
 		return
 	}
 
+	var user *db.User
 	// Start a MongoDB session for the transaction
-	session, err := s.store.Client.StartSession()
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-	defer session.EndSession(ctx)
-
-	// Define the transaction logic
-	callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
+	err := s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
 		// Step 1: Hash the password
 		hashedPassword, err := util.HashPassword(req.Password)
 		if err != nil {
@@ -37,7 +31,7 @@ func (s *Server) Signup(ctx *gin.Context) {
 		}
 
 		// Step 2: Create the user model
-		user := ConvertSignupRequestToModel(req)
+		user = ConvertSignupRequestToModel(req)
 		user.Password = hashedPassword
 
 		// Step 3: Insert the user into the database
@@ -59,54 +53,14 @@ func (s *Server) Signup(ctx *gin.Context) {
 		}
 
 		return nil, nil
-	}
-
-	// Run the transaction
-	_, err = session.WithTransaction(ctx, callback)
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "User created successfully, verification email sent"})
-}
-
-func (s *Server) Login(context *gin.Context) {
-	var req *LoginRequest
-
-	if err := context.ShouldBindJSON(&req); err != nil {
-		context.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	user, err := s.store.GetUserByUsernameAndPassword(req.Username, req.Password)
-	if err != nil {
-		context.JSON(http.StatusUnauthorized, errorResponse(err))
-		return
-	}
-
-	taskPayload := &worker.SendVerificationEmailPayload{Username: user.Username}
-	opts := []asynq.Option{
-		asynq.MaxRetry(10),
-		asynq.ProcessIn(time.Second),
-		asynq.Queue(worker.CriticalQueue),
-	}
-
-	err = s.taskDistributor.SendVerificationEmail(context, taskPayload, opts...)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, errorResponse(err))
-	}
-
-	//context.HTML(http.StatusOK, "topt.html", nil)
-	context.JSON(http.StatusOK, user)
-}
-
-func errorResponse(err error) gin.H {
-	return gin.H{"message": err.Error()}
-}
-
-/*
-accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
+	// creating tokens
+	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
 		req.Username,
 		time.Minute*15,
 	)
@@ -153,4 +107,87 @@ accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
 			DeletedAt: time.Time{},
 		},
 	}
-*/
+
+	ctx.JSON(http.StatusOK, res)
+}
+
+func (s *Server) Login(ctx *gin.Context) {
+	var req *LoginRequest
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	var user *db.User
+	var err error
+	if req.Username != "" {
+		user, err = s.store.GetUserByUsernameAndPassword(req.Username, req.Password)
+	} else {
+		user, err = s.store.GetUserByEmailAndPassword(req.Email, req.Password)
+	}
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	if !user.IsEmailVerified {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(fmt.Errorf("email is not verified")))
+		return
+	}
+
+	// creating tokens
+	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
+		req.Username,
+		time.Minute*15,
+	)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	}
+
+	refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(
+		req.Username,
+		time.Minute*60)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	session := &db.Session{
+		ID:           refreshTokenPayload.ID,
+		Username:     user.Username,
+		RefreshToken: refreshToken,
+		UserAgent:    ctx.Request.UserAgent(),
+		ClientIP:     ctx.ClientIP(),
+		IsBlocked:    false,
+		CreatedAt:    time.Now().UTC(),
+		ExpiresAt:    time.Now().UTC(),
+		DeletedAt:    nil,
+	}
+	err = s.store.InsertSession(session)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	res := SignupResponse{
+		AccessToken:           accessToken,
+		AccessTokenExpiresAt:  accessTokenPayload.ExpiredAt,
+		RefreshToken:          refreshToken,
+		RefreshTokenExpiresAt: refreshTokenPayload.ExpiredAt,
+		SessionID:             session.ID,
+		UserInformation: UserInformation{
+			Username:  user.Username,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: time.Time{},
+			DeletedAt: time.Time{},
+		},
+	}
+
+	ctx.JSON(http.StatusOK, res)
+}
+
+func errorResponse(err error) gin.H {
+	return gin.H{"message": err.Error()}
+}

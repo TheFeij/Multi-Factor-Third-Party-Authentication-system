@@ -47,7 +47,7 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
 	}
 
-	user, err := p.Store.GetUserByUsernameAndPassword(payload.Username, "")
+	user, err := p.Store.GetUserByUsername(payload.Username)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return fmt.Errorf("user does not exists: %w", asynq.SkipRetry)

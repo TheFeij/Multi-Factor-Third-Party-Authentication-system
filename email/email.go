@@ -26,6 +26,7 @@ func NewEmailSender(name, fromEmailAddress, fromEmailPassword string) *EmailSend
 func (sender *EmailSender) SendEmail(subject, content string, to, cc, bcc, attachFiles []string) error {
 	e := email.NewEmail()
 	e.From = fmt.Sprintf("%s <%s>", sender.name, sender.fromEmailAddress)
+	e.To = to
 	e.Bcc = bcc
 	e.Cc = cc
 	e.Subject = subject

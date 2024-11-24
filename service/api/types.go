@@ -45,7 +45,6 @@ type UserInformation struct {
 func ConvertSignupRequestToModel(req *SignupRequest) *db.TempUser {
 	return &db.TempUser{
 		Username: req.Username,
-		Name:     req.Name,
 		Email:    req.Email,
 		Password: req.Password,
 	}

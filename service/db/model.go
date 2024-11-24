@@ -9,7 +9,6 @@ import (
 type User struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
 	Username  string             `bson:"username"`
-	Name      string             `bson:"name"`
 	Email     string             `bson:"email"`
 	Password  string             `bson:"password"`
 	CreatedAt time.Time          `bson:"created_at"`
@@ -20,7 +19,6 @@ type User struct {
 type TempUser struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
 	Username   string             `bson:"username"`
-	Name       string             `bson:"name"`
 	Email      string             `bson:"email"`
 	Password   string             `bson:"password"`
 	CreatedAt  time.Time          `bson:"created_at"`

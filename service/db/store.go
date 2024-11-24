@@ -206,10 +206,8 @@ func (s *Store) UpdateUser(user *User) error {
 	// Prepare the update document
 	update := bson.M{
 		"$set": bson.M{
-			"name":              user.Name,
-			"password":          user.Password,
-			"updated_at":        time.Now(),
-			"is_email_verified": user.IsEmailVerified,
+			"password":   user.Password,
+			"updated_at": time.Now(),
 			// Add additional fields to update as needed
 		},
 	}

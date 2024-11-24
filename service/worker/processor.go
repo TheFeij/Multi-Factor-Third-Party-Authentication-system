@@ -3,7 +3,6 @@ package worker
 import (
 	db2 "Third-Party-Multi-Factor-Authentication-System/service/db"
 	"Third-Party-Multi-Factor-Authentication-System/service/email"
-	"Third-Party-Multi-Factor-Authentication-System/service/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -49,7 +48,7 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
 	}
 
-	user, err := p.Store.GetUserByUsername(payload.Username)
+	tempUser, err := p.Store.GetTempUser(payload.ID)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return fmt.Errorf("user does not exists: %w", asynq.SkipRetry)
@@ -57,30 +56,20 @@ func (p *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Context, t
 		return fmt.Errorf("failed to get user from database: %w", err)
 	}
 
-	log.Info().Msg(fmt.Sprintf("sending verfication email to %v", user.Email))
-	verifyEmail := &db2.VerifyEmails{
-		Username:   user.Username,
-		Email:      user.Email,
-		SecretCode: util.RandomString(16, util.ALL),
-	}
-	err = p.Store.InsertVerifyEmail(verifyEmail)
-	if err != nil {
-		return err
-	}
+	log.Info().Msg(fmt.Sprintf("sending verfication email to %v", tempUser.Email))
 
-	verifyUrl := fmt.Sprintf("api:8080?id=%s&secret_code=%s", verifyEmail.ID, verifyEmail.SecretCode)
 	content := fmt.Sprintf(`
 		Hello %s,<br/>
 		Thank You For Registering With Us!<br/>
-		Please <a href="%s">Click Here</a> To Verfiy Your Account
-	`, user.Username, verifyUrl)
-	to := []string{user.Email}
+		Here Is You Verification Code: %s
+	`, tempUser.Username, tempUser.SecretCode)
+	to := []string{tempUser.Email}
 	err = p.EmailSender.SendEmail("Welcome To Authenticator", content, to, nil, nil, nil)
 	if err != nil {
 		return err
 	}
 
-	log.Info().Msg(fmt.Sprintf("verification email was sent to %v successfully", user.Email))
+	log.Info().Msg(fmt.Sprintf("verification email was sent to %v successfully", tempUser.Email))
 	return nil
 }
 

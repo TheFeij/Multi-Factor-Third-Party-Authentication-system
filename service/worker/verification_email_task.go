@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hibiken/asynq"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const TaskSendVerificationEmail = "task:send_verification_email"
 
 type SendVerificationEmailPayload struct {
-	Username string `json:"username,omitempty"`
+	ID primitive.ObjectID `json:"id,omitempty"`
 }
 
 func (r *RedisTaskDistributor) SendVerificationEmail(

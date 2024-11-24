@@ -59,7 +59,7 @@ func main() {
 	}()
 
 	log.Info().Msg("starting server...")
-	err = server.StartServer(configs.HTTPServer)
+	err = server.Start(configs.HTTPServer, "./service/certificates/server.crt", "./service/certificates/server.key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start server")
 	}

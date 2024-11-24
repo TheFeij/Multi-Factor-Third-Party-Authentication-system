@@ -56,16 +56,12 @@ func (s *Server) setupRouter() {
 		context.JSON(http.StatusOK, gin.H{"message": "Welcome"})
 	})
 	s.router.POST("/signup", s.Signup)
-	s.router.POST("/login", s.Login)
+	//s.router.POST("/login", s.Login)
 
 	// Handle requests that don't match any defined routes
 	s.router.NoRoute(func(c *gin.Context) {
 		c.Redirect(http.StatusPermanentRedirect, "/home")
 	})
-}
-
-func (s *Server) StartServer(address string) error {
-	return s.router.Run(address)
 }
 
 func registerCustomValidators() {
@@ -82,8 +78,8 @@ func registerCustomValidators() {
 	}
 }
 
-func (s *Server) Start(address string) error {
-	return s.router.Run(address)
+func (s *Server) Start(address, cert, key string) error {
+	return s.router.RunTLS(address, cert, key)
 }
 
 func (s *Server) RouterServeHTTP(recorder *httptest.ResponseRecorder, req *http.Request) {

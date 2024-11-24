@@ -18,12 +18,12 @@ import (
 type Server struct {
 	router          *gin.Engine
 	store           *db.Store
-	tokenMaker      token.Maker
+	tokenMaker      *token.PasetoMaker
 	configs         *config.Config
 	taskDistributor *worker.RedisTaskDistributor
 }
 
-func NewServer(store *db.Store, tokenMaker token.Maker, configs *config.Config, taskDistributor *worker.RedisTaskDistributor) *Server {
+func NewServer(store *db.Store, tokenMaker *token.PasetoMaker, configs *config.Config, taskDistributor *worker.RedisTaskDistributor) *Server {
 	s := &Server{
 		router:          gin.New(),
 		store:           store,

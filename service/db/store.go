@@ -70,6 +70,30 @@ func (s *Store) InsertUser(user *User) error {
 	return nil
 }
 
+func (s *Store) InsertTempUser(tempUser *TempUser) error {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("temp_users")
+
+	// Set CreatedAt and UpdatedAt fields before insertion
+	now := time.Now().UTC()
+	tempUser.CreatedAt = now
+	tempUser.ExpiredAt = now.Add(24 * time.Hour)
+
+	// Insert the user document
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.InsertOne(ctx, tempUser)
+	if err != nil {
+		return err
+	}
+
+	tempUser.ID = result.InsertedID.(primitive.ObjectID)
+
+	fmt.Println("Temp User inserted successfully")
+	return nil
+}
+
 func (s *Store) InsertUserWithSession(sessCtx mongo.SessionContext, user *User) error {
 	// Get the users collection from the database
 	collection := s.Client.Database(s.configs.DatabaseName).Collection("users")
@@ -93,28 +117,24 @@ func (s *Store) InsertUserWithSession(sessCtx mongo.SessionContext, user *User) 
 	return nil
 }
 
-func (s *Store) InsertVerifyEmail(verifyEmail *VerifyEmails) error {
+func (s *Store) InsertTempUserWithSession(sessCtx mongo.SessionContext, tempUser *TempUser) error {
 	// Get the users collection from the database
-	collection := s.Client.Database(s.configs.DatabaseName).Collection("verify_email")
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("temp_users")
 
 	// Set CreatedAt and UpdatedAt fields before insertion
 	now := time.Now().UTC()
-	verifyEmail.CreatedAt = now
-	verifyEmail.ExpiredAt = now.Add(15 * time.Minute)
-	verifyEmail.IsUsed = false
+	tempUser.CreatedAt = now
 
 	// Insert the user document
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	result, err := collection.InsertOne(ctx, verifyEmail)
+	result, err := collection.InsertOne(sessCtx, tempUser)
 	if err != nil {
 		return err
 	}
 
-	verifyEmail.ID = result.InsertedID.(primitive.ObjectID)
+	// Set the inserted ID back to the user
+	tempUser.ID = result.InsertedID.(primitive.ObjectID)
 
-	log.Info().Msg(fmt.Sprintf("verify email inserted to the database: %v", verifyEmail))
+	log.Info().Msg(fmt.Sprintf("temp user inserted to the database: %v", tempUser))
 	return nil
 }
 
@@ -138,6 +158,84 @@ func (s *Store) GetUser(id primitive.ObjectID) (*User, error) {
 
 	// Return the found user
 	return &user, nil
+}
+
+func (s *Store) GetTempUser(id primitive.ObjectID) (*TempUser, error) {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("temp_users")
+
+	// Context for the query
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Variable to store the result
+	var tempUser TempUser
+
+	// Perform the query with FindOne
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&tempUser)
+	if err != nil {
+		// Return an error if the user is not found or another error occurs
+		return nil, err
+	}
+
+	// Return the found user
+	return &tempUser, nil
+}
+
+func (s *Store) UpdateUser(user *User) error {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("users")
+
+	// Context for the query
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Ensure that either username or email is provided
+	if user.Username == "" && user.Email == "" {
+		return fmt.Errorf("username or email must be provided for update")
+	}
+
+	// Query to find user by username or email
+	filter := bson.M{
+		"$or": []bson.M{
+			{"username": user.Username},
+			{"email": user.Email},
+		},
+	}
+
+	// Prepare the update document
+	update := bson.M{
+		"$set": bson.M{
+			"name":              user.Name,
+			"password":          user.Password,
+			"updated_at":        time.Now(),
+			"is_email_verified": user.IsEmailVerified,
+			// Add additional fields to update as needed
+		},
+	}
+
+	// Perform the update operation
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		// Return an error if the update fails
+		return err
+	}
+
+	// If no documents were modified, return an error
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("no user found with username '%s' or email '%s'", user.Username, user.Email)
+	}
+
+	// Retrieve the updated user document
+	var updatedUser User
+	err = collection.FindOne(ctx, filter).Decode(&updatedUser)
+	if err != nil {
+		// Return an error if unable to fetch the updated document
+		return err
+	}
+
+	// Return the updated user
+	return nil
 }
 
 func (s *Store) GetUserByUsername(username string) (*User, error) {
@@ -216,6 +314,30 @@ func (s *Store) GetUserByEmailAndPassword(email, password string) (*User, error)
 	err = util.CheckPassword(password, user.Password)
 	if err != nil {
 		return nil, errors.New("invalid password")
+	}
+
+	// Return the found user
+	return &user, nil
+}
+
+func (s *Store) GetUserByEmail(email string) (*User, error) {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("users")
+
+	// Context for the query
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Variable to store the result
+	var user User
+
+	// Find the user by email
+	err := collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
 	}
 
 	// Return the found user

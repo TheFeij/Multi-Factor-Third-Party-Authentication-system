@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+type VerifyEmailRequest struct {
+	SignupToken      string `json:"signup_token"`
+	VerificationCode string `json:"verification_code"`
+}
+
 type LoginRequest struct {
 	Username string
 	Email    string
@@ -37,8 +42,8 @@ type UserInformation struct {
 	DeletedAt time.Time `json:"deleted_at"`
 }
 
-func ConvertSignupRequestToModel(req *SignupRequest) *db.User {
-	return &db.User{
+func ConvertSignupRequestToModel(req *SignupRequest) *db.TempUser {
+	return &db.TempUser{
 		Username: req.Username,
 		Name:     req.Name,
 		Email:    req.Email,

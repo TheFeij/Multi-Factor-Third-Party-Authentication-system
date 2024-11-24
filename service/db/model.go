@@ -7,25 +7,25 @@ import (
 
 // User model with BSON tags
 type User struct {
-	ID              primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
-	Username        string             `bson:"username"`
-	Name            string             `bson:"name"`
-	Email           string             `bson:"email"`
-	Password        string             `bson:"password"`
-	CreatedAt       time.Time          `bson:"created_at"`
-	UpdatedAt       time.Time          `bson:"updated_at"`
-	DeletedAt       *time.Time         `bson:"deleted_at,omitempty"`
-	IsEmailVerified bool               `bson:"is_email_verified"`
+	ID        primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
+	Username  string             `bson:"username"`
+	Name      string             `bson:"name"`
+	Email     string             `bson:"email"`
+	Password  string             `bson:"password"`
+	CreatedAt time.Time          `bson:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at"`
+	DeletedAt *time.Time         `bson:"deleted_at,omitempty"`
 }
 
-type VerifyEmails struct {
+type TempUser struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
 	Username   string             `bson:"username"`
+	Name       string             `bson:"name"`
 	Email      string             `bson:"email"`
-	SecretCode string             `bson:"secret_code"`
-	IsUsed     bool               `bson:"is_used"`
+	Password   string             `bson:"password"`
 	CreatedAt  time.Time          `bson:"created_at"`
 	ExpiredAt  time.Time          `bson:"expired_at"`
+	SecretCode string             `bson:"secret_code"`
 }
 
 // ActivityLog model with BSON tags

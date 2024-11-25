@@ -11,6 +11,11 @@ type VerifyEmailRequest struct {
 	VerificationCode string `json:"verification_code"`
 }
 
+type VerifyLoginRequest struct {
+	LoginToken string `json:"login_token"`
+	TOTP       string `json:"totp"`
+}
+
 type LoginRequest struct {
 	Username string
 	Email    string
@@ -31,6 +36,7 @@ type SignupResponse struct {
 	RefreshTokenExpiresAt time.Time
 	SessionID             primitive.ObjectID
 	UserInformation       UserInformation
+	TOTPSecret            string `json:"totp_secret"`
 }
 
 type UserInformation struct {

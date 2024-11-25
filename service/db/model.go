@@ -7,13 +7,14 @@ import (
 
 // User model with BSON tags
 type User struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
-	Username  string             `bson:"username"`
-	Email     string             `bson:"email"`
-	Password  string             `bson:"password"`
-	CreatedAt time.Time          `bson:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at"`
-	DeletedAt *time.Time         `bson:"deleted_at,omitempty"`
+	ID         primitive.ObjectID `bson:"_id,omitempty"` // MongoDB will automatically generate an ObjectID
+	Username   string             `bson:"username"`
+	Email      string             `bson:"email"`
+	Password   string             `bson:"password"`
+	CreatedAt  time.Time          `bson:"created_at"`
+	UpdatedAt  time.Time          `bson:"updated_at"`
+	DeletedAt  *time.Time         `bson:"deleted_at,omitempty"`
+	TOTPSecret string             `bson:"totp_secret"`
 }
 
 type TempUser struct {

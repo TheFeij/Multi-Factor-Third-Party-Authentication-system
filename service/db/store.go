@@ -160,6 +160,64 @@ func (s *Store) GetUser(id primitive.ObjectID) (*User, error) {
 	return &user, nil
 }
 
+func (s *Store) GetUserWithSession(sessCtx mongo.SessionContext, id primitive.ObjectID) (*User, error) {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("users")
+
+	// Variable to store the result
+	var user User
+
+	// Perform the query with FindOne
+	err := collection.FindOne(sessCtx, bson.M{"_id": id}).Decode(&user)
+	if err != nil {
+		// Return an error if the user is not found or another error occurs
+		return nil, err
+	}
+
+	// Return the found user
+	return &user, nil
+}
+
+func (s *Store) DeleteTempUser(id primitive.ObjectID) error {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("temp_users")
+
+	// Context for the query
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Perform the deletion
+	result, err := collection.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err // Return the error if the operation fails
+	}
+
+	// Check if a user was actually deleted
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("no user found with id: %s", id.Hex())
+	}
+
+	return nil // Return nil to indicate success
+}
+
+func (s *Store) DeleteTempUserWithSession(sessCtx mongo.SessionContext, id primitive.ObjectID) error {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("temp_users")
+
+	// Perform the deletion
+	result, err := collection.DeleteOne(sessCtx, bson.M{"_id": id})
+	if err != nil {
+		return err // Return the error if the operation fails
+	}
+
+	// Check if a user was actually deleted
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("no user found with id: %s", id.Hex())
+	}
+
+	return nil // Return nil to indicate success
+}
+
 func (s *Store) GetTempUser(id primitive.ObjectID) (*TempUser, error) {
 	// Get the users collection from the database
 	collection := s.Client.Database(s.configs.DatabaseName).Collection("temp_users")
@@ -173,6 +231,24 @@ func (s *Store) GetTempUser(id primitive.ObjectID) (*TempUser, error) {
 
 	// Perform the query with FindOne
 	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&tempUser)
+	if err != nil {
+		// Return an error if the user is not found or another error occurs
+		return nil, err
+	}
+
+	// Return the found user
+	return &tempUser, nil
+}
+
+func (s *Store) GetTempUserWithSession(sessCtx mongo.SessionContext, id primitive.ObjectID) (*TempUser, error) {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("temp_users")
+
+	// Variable to store the result
+	var tempUser TempUser
+
+	// Perform the query with FindOne
+	err := collection.FindOne(sessCtx, bson.M{"_id": id}).Decode(&tempUser)
 	if err != nil {
 		// Return an error if the user is not found or another error occurs
 		return nil, err
@@ -379,6 +455,27 @@ func (s *Store) InsertSession(session *Session) error {
 	defer cancel()
 
 	result, err := collection.InsertOne(ctx, session)
+	if err != nil {
+		return err
+	}
+
+	// Retrieve the inserted ID and update the session ID with it
+	session.ID = result.InsertedID.(primitive.ObjectID) // Convert the inserted ID to ObjectID
+
+	log.Info().Msg(fmt.Sprintf("session inserted to the database successfully: %v", session))
+	return nil
+}
+
+func (s *Store) InsertSessionWithSession(sessCtx mongo.SessionContext, session *Session) error {
+	// Get the sessions collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("sessions")
+
+	// Set CreatedAt and UpdatedAt fields before insertion
+	now := time.Now().UTC()
+	session.CreatedAt = now
+	session.DeletedAt = nil // Initial value is nil for DeletedAt
+
+	result, err := collection.InsertOne(sessCtx, session)
 	if err != nil {
 		return err
 	}

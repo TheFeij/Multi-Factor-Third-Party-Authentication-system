@@ -9,5 +9,6 @@
   "REDIS_ADDRESS": "localhost:6379",
   "EMAIL_SENDER_NAME": "Authenticator",
   "EMAIL_SENDER_ADDRESS": "i.am.feij@gmail.com",
-  "EMAIL_SENDER_PASSWORD": "xyzm tyao frwc uvhi"
+  "EMAIL_SENDER_PASSWORD": "xyzm tyao frwc uvhi",
+  "ENCRYPTION_KEY": "5ddad5f8b9ea40ab0fbc26e36ff83dbe00b1dc528fe396ccf9213d61efa89511"
 }

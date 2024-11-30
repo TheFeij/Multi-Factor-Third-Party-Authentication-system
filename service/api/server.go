@@ -1,6 +1,7 @@
 package api
 
 import (
+	"Third-Party-Multi-Factor-Authentication-System/service/cache"
 	"Third-Party-Multi-Factor-Authentication-System/service/config"
 	"Third-Party-Multi-Factor-Authentication-System/service/db"
 	"Third-Party-Multi-Factor-Authentication-System/service/tokenmanager/token"
@@ -21,15 +22,17 @@ type Server struct {
 	tokenMaker      *token.PasetoMaker
 	configs         *config.Config
 	taskDistributor *worker.RedisTaskDistributor
+	cache           *cache.Cache
 }
 
-func NewServer(store *db.Store, tokenMaker *token.PasetoMaker, configs *config.Config, taskDistributor *worker.RedisTaskDistributor) *Server {
+func NewServer(store *db.Store, tokenMaker *token.PasetoMaker, configs *config.Config, taskDistributor *worker.RedisTaskDistributor, cache *cache.Cache) *Server {
 	s := &Server{
 		router:          gin.New(),
 		store:           store,
 		tokenMaker:      tokenMaker,
 		configs:         configs,
 		taskDistributor: taskDistributor,
+		cache:           cache,
 	}
 
 	registerCustomValidators()

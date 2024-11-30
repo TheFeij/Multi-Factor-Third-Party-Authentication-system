@@ -2,6 +2,7 @@ package main
 
 import (
 	"Third-Party-Multi-Factor-Authentication-System/service/api"
+	"Third-Party-Multi-Factor-Authentication-System/service/cache"
 	"Third-Party-Multi-Factor-Authentication-System/service/config"
 	"Third-Party-Multi-Factor-Authentication-System/service/db"
 	"Third-Party-Multi-Factor-Authentication-System/service/email"
@@ -42,7 +43,9 @@ func main() {
 	}
 	log.Info().Msg("initialized database")
 
-	server := api.NewServer(store, tokenMaker, configs, taskDistributor)
+	cache := cache.GetCache(configs)
+
+	server := api.NewServer(store, tokenMaker, configs, taskDistributor, cache)
 	if err != nil {
 		fmt.Println(err)
 	}

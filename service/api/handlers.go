@@ -8,13 +8,21 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/hibiken/asynq"
 	"github.com/pquerna/otp/totp"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 )
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Adjust this for security, e.g., domain checks
+	},
+}
 
 func (s *Server) Signup(ctx *gin.Context) {
 	var req *SignupRequest
@@ -249,7 +257,7 @@ func (s *Server) Login(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, loginToken)
 }
 
-func (s *Server) VerifyLogin(ctx *gin.Context) {
+func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 	var req *VerifyLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -267,7 +275,6 @@ func (s *Server) VerifyLogin(ctx *gin.Context) {
 	}
 
 	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		// check if temp user is not expired
 		user, err := s.store.GetUserWithSession(sessCtx, payload.ID)
 		if err != nil {
 			return nil, err
@@ -292,6 +299,96 @@ func (s *Server) VerifyLogin(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusOK)
+}
+
+func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
+	// Upgrade the HTTP connection to a WebSocket
+	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	defer conn.Close()
+
+	// Read the initial login request from the WebSocket
+	var req VerifyLoginRequest
+	if err := conn.ReadJSON(&req); err != nil {
+		err := conn.WriteMessage(websocket.TextMessage, []byte("Invalid request"))
+		if err != nil {
+			return
+		}
+		return
+	}
+
+	now := time.Now()
+
+	// Decode the login token
+	payload, err := s.tokenMaker.VerifyToken(req.LoginToken)
+	if err != nil {
+		err := conn.WriteJSON(errorResponse(fmt.Errorf("unauthorized: %v", err)))
+		if err != nil {
+			return
+		}
+		return
+	}
+	if payload.ExpiredAt.Before(now) {
+		err := conn.WriteJSON(errorResponse(fmt.Errorf("token expired")))
+		if err != nil {
+			return
+		}
+		return
+	}
+
+	// Generate a 2-digit code
+	code := fmt.Sprintf("%02d", rand.Intn(100))
+
+	// Store the code temporarily (e.g., in Redis or an in-memory store)
+	err = s.cache.SetData(payload.Username, map[string]interface{}{"code": code, "approved": 0}, time.Minute*2)
+	if err != nil {
+		err := conn.WriteJSON(errorResponse(fmt.Errorf("failed to save code: %v", err)))
+		if err != nil {
+			return
+		}
+		return
+	}
+
+	// Send the code to the client
+	if err := conn.WriteJSON(map[string]string{
+		"message": "Login approval required",
+		"code":    code,
+	}); err != nil {
+		return
+	}
+
+	var approved int
+
+	// can i wait for two minutes here?
+	start := time.Now()
+	for time.Since(start) < 2*time.Minute {
+		data, err := s.cache.GetData(payload.Username)
+		if err != nil {
+			return
+		}
+
+		value, ok := data["approved"].(int)
+		if !ok {
+			time.Sleep(4 * time.Second)
+		} else {
+			approved = value
+			break
+		}
+	}
+
+	if approved == 2 {
+		err := conn.WriteJSON(errorResponse(fmt.Errorf("login failed")))
+		if err != nil {
+			return
+		}
+		return
+	} else if approved == 1 {
+		// Perform any redirection or other post-login tasks as needed
+		fmt.Println("Login approved for user:", payload.Username)
+	}
 }
 
 func errorResponse(err error) gin.H {

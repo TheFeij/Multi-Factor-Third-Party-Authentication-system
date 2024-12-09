@@ -59,6 +59,8 @@ func (s *Server) setupRouter() {
 		context.JSON(http.StatusOK, gin.H{"message": "Welcome"})
 	})
 	s.router.POST("/signup", s.Signup)
+	s.router.POST("/verify-email", s.VerifyEmail)
+	s.router.POST("/login-approves", s.GetLoginRequests)
 	//s.router.POST("/login", s.Login)
 
 	// Handle requests that don't match any defined routes

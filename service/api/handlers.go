@@ -89,7 +89,9 @@ func (s *Server) Signup(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 	}
 
-	ctx.JSON(http.StatusOK, signupToken)
+	resp := &SignupResponse{SignupToken: signupToken}
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) VerifyEmail(ctx *gin.Context) {
@@ -104,13 +106,14 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 	payload, err := s.tokenMaker.VerifyToken(req.SignupToken)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
 	}
 	if payload.ExpiredAt.Before(now) {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("token expired")))
 	}
 
 	var user *db.User
-	var resp *SignupResponse
+	var resp *AuthVerificationResponse
 
 	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
 		// check if temp user is not expired
@@ -196,7 +199,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 			return nil, fmt.Errorf("failed to create session")
 		}
 
-		resp = &SignupResponse{
+		resp = &AuthVerificationResponse{
 			AccessToken:           accessToken,
 			AccessTokenExpiresAt:  accessTokenPayload.ExpiredAt,
 			RefreshToken:          refreshToken,
@@ -212,7 +215,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 			TOTPSecret: key.Secret(),
 		}
 
-		return nil, err
+		return nil, nil
 	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -342,8 +345,18 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	// Generate a 2-digit code
 	code := fmt.Sprintf("%02d", rand.Intn(100))
 
+	// Collect device and location info
+	deviceInfo := ctx.Request.Header.Get("User-Agent")
+	ip := ctx.ClientIP() // Requires Gin framework setup
+
 	// Store the code temporarily (e.g., in Redis or an in-memory store)
-	err = s.cache.SetData(payload.Username, map[string]interface{}{"code": code, "approved": 0}, time.Minute*2)
+	err = s.cache.SetData(payload.Username, map[string]interface{}{
+		"code":        code,
+		"approved":    0,
+		"time":        time.Now(),
+		"device_info": deviceInfo,
+		"ip":          ip,
+	}, time.Minute*2)
 	if err != nil {
 		err := conn.WriteJSON(errorResponse(fmt.Errorf("failed to save code: %v", err)))
 		if err != nil {
@@ -389,6 +402,67 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		// Perform any redirection or other post-login tasks as needed
 		fmt.Println("Login approved for user:", payload.Username)
 	}
+}
+
+func (s *Server) GetLoginRequests(ctx *gin.Context) {
+	var req *GetLoginRequests
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	}
+
+	now := time.Now()
+
+	// decode the access token
+	payload, err := s.tokenMaker.VerifyToken(req.AccessToken)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+	}
+	if payload.ExpiredAt.Before(now) {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("token expired")))
+	}
+
+	user, err := s.store.GetUser(payload.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(errors.New("user not found")))
+	}
+
+	loginRequest, err := s.cache.GetData(user.Username)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, nil)
+	}
+
+	codesMap := map[string]string{}
+	codesMap[loginRequest["code"].(string)] = loginRequest["code"].(string)
+
+	count := 0
+	for {
+		code := fmt.Sprintf("%02d", rand.Intn(100))
+		_, ok := codesMap[code]
+		if !ok {
+			codesMap[code] = code
+			count++
+
+			if count == 2 {
+				break
+			}
+		}
+	}
+
+	codes := make([]string, len(codesMap))
+	index := 0
+	for key, _ := range codesMap {
+		codes[index] = key
+		index++
+	}
+
+	response := &LoginApproves{
+		Codes:      codes,
+		IP:         loginRequest["ip"].(string),
+		DeviceInfo: loginRequest["device_info"].(string),
+		Time:       loginRequest["time"].(time.Time),
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }
 
 func errorResponse(err error) gin.H {

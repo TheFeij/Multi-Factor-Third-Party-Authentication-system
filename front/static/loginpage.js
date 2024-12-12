@@ -11,11 +11,11 @@ function validateLoginForm(event) {
 
     // Validate inputs
     if (!usernameOrEmail) {
-        document.getElementById("username-error").innerText = "This field is required.";
+        document.getElementById("username-error").innerText = "پر کردن این فیلد اجباری است";
         isValid = false;
     }
     if (!password) {
-        document.getElementById("password-error").innerText = "This field is required.";
+        document.getElementById("password-error").innerText = "پر کردن این فیلد اجباری است";
         isValid = false;
     }
 

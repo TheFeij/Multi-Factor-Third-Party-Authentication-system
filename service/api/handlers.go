@@ -34,7 +34,9 @@ func (s *Server) Signup(ctx *gin.Context) {
 		return
 	}
 
-	now := time.Now()
+	if err := ValidateOnSignup(s.store, req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	}
 
 	var tempUser *db.TempUser
 	// Start a MongoDB session for the transaction
@@ -48,9 +50,8 @@ func (s *Server) Signup(ctx *gin.Context) {
 		// Step 2: Create the user model
 		tempUser = ConvertSignupRequestToModel(req)
 		tempUser.Password = hashedPassword
-
 		tempUser.SecretCode = util.RandomString(6, util.NUMBERS)
-		tempUser.ExpiredAt = now.Add(24 * time.Hour)
+		tempUser.ExpiredAt = time.Now().Add(24 * time.Hour)
 
 		// Step 3: Insert the user into the database
 		err = s.store.InsertTempUserWithSession(sessCtx, tempUser) // Use the session-aware insert method
@@ -77,17 +78,16 @@ func (s *Server) Signup(ctx *gin.Context) {
 		return
 	}
 
-	// creating tokens
 	signupToken, _, err := s.tokenMaker.CreateToken(
 		&token.Payload{
 			ID:        tempUser.ID,
 			Username:  "",
 			IssuedAt:  time.Now(),
-			ExpiredAt: now.Add(24 * time.Hour),
+			ExpiredAt: time.Now().Add(24 * time.Hour),
 		},
 	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
 	}
 
 	resp := &SignupResponse{SignupToken: signupToken}

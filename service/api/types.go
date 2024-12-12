@@ -22,15 +22,15 @@ type VerifyAndroidLoginRequest struct {
 }
 
 type LoginRequest struct {
-	Username string
-	Email    string
-	Password string
+	Username string `json:"username,omitempty"  binding:"validUsername"`
+	Email    string `json:"email,omitempty"  binding:"ValidEmail"`
+	Password string `json:"password,omitempty"  binding:"validPassword"`
 }
 
 type SignupRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Email    string `json:"email"`
+	Username string `json:"username" binding:"validUsername"`
+	Password string `json:"password" binding:"validPassword"`
+	Email    string `json:"email" binding:"ValidEmail"`
 }
 
 type AuthVerificationResponse struct {

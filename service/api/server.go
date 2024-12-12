@@ -8,8 +8,6 @@ import (
 	"Third-Party-Multi-Factor-Authentication-System/service/worker"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"net/http/httptest"
@@ -34,8 +32,6 @@ func NewServer(store *db.Store, tokenMaker *token.PasetoMaker, configs *config.C
 		taskDistributor: taskDistributor,
 		cache:           cache,
 	}
-
-	registerCustomValidators()
 
 	s.setupRouter()
 
@@ -81,23 +77,6 @@ func (s *Server) setupRouter() {
 	//s.router.NoRoute(func(c *gin.Context) {
 	//	c.Redirect(http.StatusPermanentRedirect, "/home")
 	//})
-}
-
-func registerCustomValidators() {
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		if err := v.RegisterValidation("validUsername", ValidUsername); err != nil {
-			log.Fatal().Msg("could not register validUsername validator")
-		}
-		if err := v.RegisterValidation("validPassword", ValidPassword); err != nil {
-			log.Fatal().Msg("could not register validPassword validator")
-		}
-		if err := v.RegisterValidation("validFullname", ValidFullname); err != nil {
-			log.Fatal().Msg("could not register validFullname validator")
-		}
-		if err := v.RegisterValidation("ValidEmail", ValidEmail); err != nil {
-			log.Fatal().Msg("could not register ValidEmail validator")
-		}
-	}
 }
 
 func (s *Server) Start(address, cert, key string) error {

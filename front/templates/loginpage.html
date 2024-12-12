@@ -20,25 +20,25 @@
 <div id="app" class="container">
     <!-- Login Form -->
     <form id="login-form" class="card" onsubmit="validateLoginForm(event)">
-        <h1>Login</h1>
+        <h1 class="pad1">ورود به حساب کاربری</h1>
         <div class="form-group">
-            <label for="usernameOrEmail">Username or Email:</label>
+            <label for="usernameOrEmail" class="rtl">نام‌کاربری یا ایمیل:</label>
             <input type="text" id="usernameOrEmail" class="input" required>
             <span id="username-error" class="error-message"></span>
         </div>
         <div class="form-group">
-            <label for="password">Password:</label>
+            <label for="password" class="rtl">گذرواژه:</label>
             <input type="password" id="password" class="input" required>
             <span id="password-error" class="error-message"></span>
         </div>
-        <button type="submit" class="button">Login</button>
+        <button type="submit" class="button">تایید</button>
         <div id="response-message" class="response-message"></div>
     </form>
 
     <!-- Verification Code Form -->
     <form id="verify-form" class="card" onsubmit="validateVerificationCode(event)" style="display: none;">
-        <h1>Enter Verification Code</h1>
-        <p>Enter the 6-digit code from your Android app:</p>
+        <h1 class="pad2">کد تایید را وارد کنید</h1>
+        <p>کد تایید تولید شده در برنامه‌ی اندرویدی را وارد کنید</p>
         <div id="code-inputs" class="code-input-group">
             <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 2)">
             <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 3)">
@@ -47,20 +47,20 @@
             <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 6)">
             <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 6)">
         </div>
-        <button type="submit" class="button">Verify</button>
+        <button type="submit" class="button">تایید</button>
         <div id="verify-response-message" class="response-message"></div>
-        <a href="#" id="try-another-way" onclick="showAlternativeMethod(event)">Try another way</a>
+        <a href="#" id="try-another-way" class="link-button" onclick="showAlternativeMethod(event)">تایید با برنامه اندروید</a>
     </form>
 
     <!-- Alternative Method Form -->
-    <div id="alternative-method" class="card" style="display: none;">
-        <h1>Alternative Method</h1>
-        <p>We have sent a code to your account. Select the number below in your Android app:</p>
+    <form id="alternative-method" class="card" style="display: none;">
+        <h1 class="pad1">تایید در برنامه</h1>
+        <p>لطفا در برنامه‌ی اندرویدی سامانه در قسمت تایید ورود کد زیر را انتخاب و تایید کنید</p>
         <div id="alternative-code" class="code-display">
             <!-- The number will be dynamically inserted here -->
         </div>
-        <button type="button" class="button" onclick="goBackToVerification()">Back to Code Entry</button>
-    </div>
+        <a href="#" id="go-to-totp" class="link-button" onclick="goBackToVerification(event)">تایید با کد زمان دار</a>
+    </form>
 </div>
 
 </body>

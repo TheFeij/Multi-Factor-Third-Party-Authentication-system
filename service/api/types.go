@@ -16,6 +16,11 @@ type VerifyLoginRequest struct {
 	TOTP       string `json:"totp"`
 }
 
+type VerifyAndroidLoginRequest struct {
+	LoginToken       string `json:"login_token"`
+	VerificationCode string `json:"verification_code"`
+}
+
 type LoginRequest struct {
 	Username string
 	Email    string
@@ -40,6 +45,10 @@ type AuthVerificationResponse struct {
 
 type SignupResponse struct {
 	SignupToken string `json:"signup_token,omitempty"`
+}
+
+type AndroidLoginResponse struct {
+	LoginToken string `json:"login_token,omitempty"`
 }
 
 type UserInformation struct {
@@ -70,9 +79,23 @@ type GetLoginRequests struct {
 	AccessToken string `json:"access_token"`
 }
 
+type ApproveLoginRequests struct {
+	AccessToken string `json:"access_token"`
+	Code        string `json:"code"`
+}
+
 type LoginApproves struct {
 	Codes      []string  `json:"codes,omitempty"`
 	IP         string    `json:"ip,omitempty"`
 	DeviceInfo string    `json:"device_info,omitempty"`
 	Time       time.Time `json:"time"`
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type RefreshTokenResponse struct {
+	AccessToken          string    `json:"access_token,omitempty"`
+	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }

@@ -1,0 +1,263 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Background */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1d1d1d, #444);
+    color: #fff;
+}
+
+/* Login Container */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+/* Login Card */
+.login-card {
+    background: #2a2a2a;
+    border-radius: 10px;
+    padding: 30px;
+    width: 100%;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.login-card h1 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #fff;
+}
+
+/* Input Group */
+.input-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #ccc;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background: #1d1d1d;
+    color: #fff;
+    font-size: 16px;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #6a5acd;
+    box-shadow: 0 0 5px rgba(106, 90, 205, 0.8);
+}
+
+/* Login Button */
+.login-button {
+    width: 100%;
+    padding: 10px 0;
+    background: #6a5acd;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.login-button:hover {
+    background: #5a4ab8;
+}
+
+/* Response Message */
+.response-message {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #f54242;
+}
+
+/* Container */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+    padding: 20px;
+}
+
+/* Card */
+.card {
+    background: #2a2a2a;
+    border-radius: 10px;
+    padding: 30px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.card h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+/* Form Group */
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #ccc;
+}
+
+.input {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background: #1d1d1d;
+    color: #fff;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #6a5acd;
+    box-shadow: 0 0 5px rgba(106, 90, 205, 0.8);
+}
+
+/* Buttons */
+.button {
+    width: 100%;
+    padding: 10px 0;
+    font-size: 16px;
+    color: #fff;
+    background: #6a5acd;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.button:hover {
+    background: #5a4ab8;
+}
+
+/* Code Input Group */
+.code-input-group {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+}
+
+.code-input {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    text-align: center;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background: #1d1d1d;
+    color: #fff;
+}
+
+.code-input:focus {
+    outline: none;
+    border-color: #6a5acd;
+    box-shadow: 0 0 5px rgba(106, 90, 205, 0.8);
+}
+
+/* Response Message */
+.response-message {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #f54242;
+}
+
+.response-message.success {
+    color: #42f54b;
+}
+
+/* Alternative Method Section */
+#alternative-method {
+    display: none;
+    padding: 30px;
+    background: #2a2a2a;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    margin-top: 20px;
+}
+
+#alternative-method h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+#alternative-method p {
+    font-size: 16px;
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+#alternative-code {
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+#alternative-method .button {
+    width: 100%;
+    padding: 10px 0;
+    font-size: 16px;
+    color: #fff;
+    background: #6a5acd;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#alternative-method .button:hover {
+    background: #5a4ab8;
+}
+
+#try-another-way {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #6a5acd;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+#try-another-way:hover {
+    color: #5a4ab8;
+}

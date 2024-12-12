@@ -51,22 +51,36 @@ func (s *Server) setupRouter() {
 	config.AllowOrigins = []string{"*"}
 	config.AllowMethods = []string{"GET", "POST", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type"}
-
-	// Use the CORS middleware with the custom configuration
 	s.router.Use(cors.New(config))
+
+	// Serve static files
+	s.router.Static("/static", "./front/static")
+
+	// Set the directory for HTML templates
+	s.router.LoadHTMLGlob("./front/templates/*.html")
+
+	s.router.GET("/login", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "loginpage.html", nil)
+	})
 
 	s.router.GET("/", func(context *gin.Context) {
 		context.JSON(http.StatusOK, gin.H{"message": "Welcome"})
 	})
-	s.router.POST("/signup", s.Signup)
-	s.router.POST("/verify-email", s.VerifyEmail)
-	s.router.POST("/login-approves", s.GetLoginRequests)
-	//s.router.POST("/login", s.Login)
+	s.router.POST("api/signup", s.Signup)
+	s.router.POST("api/verify-email", s.VerifyEmail)
+	s.router.POST("api/login-approves", s.GetLoginRequests)
+	s.router.POST("api/android-login", s.AndroidAppLogin)
+	s.router.POST("api/verify-android-login", s.VerifyAndroidAppLogin)
+	s.router.POST("api/login", s.Login)
+	s.router.POST("api/totp-approve", s.VerifyLoginWithTOTP)
+	s.router.GET("api/notif-approve", s.VerifyLoginWithAndroidAppNotification)
+	s.router.POST("api/approve-login", s.ApproveLoginRequests)
+	s.router.POST("api/refresh-token", s.RefreshToken)
 
-	// Handle requests that don't match any defined routes
-	s.router.NoRoute(func(c *gin.Context) {
-		c.Redirect(http.StatusPermanentRedirect, "/home")
-	})
+	//// Handle requests that don't match any defined routes
+	//s.router.NoRoute(func(c *gin.Context) {
+	//	c.Redirect(http.StatusPermanentRedirect, "/home")
+	//})
 }
 
 func registerCustomValidators() {
@@ -79,6 +93,9 @@ func registerCustomValidators() {
 		}
 		if err := v.RegisterValidation("validFullname", ValidFullname); err != nil {
 			log.Fatal().Msg("could not register validFullname validator")
+		}
+		if err := v.RegisterValidation("ValidEmail", ValidEmail); err != nil {
+			log.Fatal().Msg("could not register ValidEmail validator")
 		}
 	}
 }

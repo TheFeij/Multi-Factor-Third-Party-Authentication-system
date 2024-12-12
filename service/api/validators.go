@@ -34,3 +34,13 @@ var ValidFullname validator.Func = func(fl validator.FieldLevel) bool {
 	}
 	return false
 }
+
+var ValidEmail validator.Func = func(fl validator.FieldLevel) bool {
+	if email, ok := fl.Field().Interface().(string); ok {
+		if err := util.ValidateEmail(email); err != nil {
+			return false
+		}
+		return true
+	}
+	return false
+}

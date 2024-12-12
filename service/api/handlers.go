@@ -11,10 +11,11 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/hibiken/asynq"
 	"github.com/pquerna/otp/totp"
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -142,7 +143,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 			AccountName: tempUser.Username,
 		})
 		if err != nil {
-			log.Fatalf("Failed to generate TOTP key: %v", err)
+			log.Error().Msg(fmt.Sprintf("Failed to generate TOTP key: %v", err))
 		}
 
 		cipherKey, err := util.Encrypt(key.Secret(), s.configs.EncryptionKey)
@@ -167,7 +168,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 			&token.Payload{
 				Username:  user.Username,
 				IssuedAt:  time.Now(),
-				ExpiredAt: now.Add(1 * time.Hour),
+				ExpiredAt: now.Add(30 * 24 * time.Hour),
 			})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create refresh token")
@@ -257,7 +258,194 @@ func (s *Server) Login(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 	}
 
-	ctx.JSON(http.StatusOK, loginToken)
+	ctx.JSON(http.StatusOK, &AndroidLoginResponse{LoginToken: loginToken})
+}
+
+func (s *Server) AndroidAppLogin(ctx *gin.Context) {
+	var req *LoginRequest
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	now := time.Now()
+
+	var tempUser *db.TempUser
+	// Start a MongoDB session for the transaction
+	err := s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		var user *db.User
+		var err error
+
+		if req.Username != "" {
+			user, err = s.store.GetUserByUsernameAndPassword(req.Username, req.Password)
+		} else {
+			user, err = s.store.GetUserByEmailAndPassword(req.Email, req.Password)
+		}
+		if err != nil {
+			ctx.JSON(http.StatusUnauthorized, "invalid credentials")
+			return nil, err
+		}
+
+		// Step 2: Create the user model
+		tempUser = &db.TempUser{
+			Username:   user.Username,
+			Email:      user.Email,
+			Password:   user.Password,
+			ExpiredAt:  now.Add(time.Minute * 10),
+			SecretCode: util.RandomString(6, util.NUMBERS),
+		}
+
+		// Step 3: Insert the user into the database
+		err = s.store.InsertTempUserWithSession(sessCtx, tempUser) // Use the session-aware insert method
+		if err != nil {
+			return nil, fmt.Errorf("failed to insert user: %v", err)
+		}
+
+		// Step 4: Enqueue the task for sending the verification email
+		taskPayload := &worker.SendVerificationEmailPayload{ID: tempUser.ID}
+		opts := []asynq.Option{
+			asynq.MaxRetry(10),
+			asynq.ProcessIn(time.Second),
+			asynq.Queue(worker.CriticalQueue),
+		}
+		err = s.taskDistributor.SendVerificationEmail(sessCtx, taskPayload, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to enqueue email task: %v", err)
+		}
+
+		return nil, nil
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// creating tokens
+	loginToken, _, err := s.tokenMaker.CreateToken(
+		&token.Payload{
+			ID:        tempUser.ID,
+			Username:  "",
+			IssuedAt:  time.Now(),
+			ExpiredAt: now.Add(10 * time.Minute),
+		},
+	)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	}
+
+	ctx.JSON(http.StatusOK, &AndroidLoginResponse{LoginToken: loginToken})
+}
+
+func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
+	var req *VerifyAndroidLoginRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	}
+
+	now := time.Now()
+
+	// decode the login token
+	payload, err := s.tokenMaker.VerifyToken(req.LoginToken)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+	if payload.ExpiredAt.Before(now) {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("token expired")))
+	}
+
+	var user *db.User
+	var resp *AuthVerificationResponse
+
+	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		// check if temp user is not expired
+		tempUser, err := s.store.GetTempUserWithSession(sessCtx, payload.ID)
+		if err != nil {
+			return nil, err
+		}
+		if tempUser.ExpiredAt.Before(now) {
+			return nil, fmt.Errorf("token expired")
+		}
+
+		// check the code
+		if tempUser.SecretCode != req.VerificationCode {
+			return nil, fmt.Errorf("wrong code")
+		}
+
+		user, err = s.store.GetUserByUsername(tempUser.Username)
+
+		// if correct delete the temp user and insert user
+		err = s.store.DeleteTempUserWithSession(sessCtx, tempUser.ID)
+		if err != nil {
+			return nil, fmt.Errorf("user not found")
+		}
+
+		totpSecret, err := util.Decrypt(user.TOTPSecret, s.configs.EncryptionKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encrypt")
+		}
+
+		// creating tokens
+		refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(
+			&token.Payload{
+				Username:  user.Username,
+				IssuedAt:  time.Now(),
+				ExpiredAt: now.Add(30 * 24 * time.Hour),
+			})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create refresh token")
+		}
+
+		accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
+			&token.Payload{
+				Username:  user.Username,
+				IssuedAt:  time.Now(),
+				ExpiredAt: now.Add(15 * time.Minute),
+			})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create refresh token")
+		}
+
+		session := &db.Session{
+			ID:           refreshTokenPayload.ID,
+			Username:     user.Username,
+			RefreshToken: refreshToken,
+			UserAgent:    ctx.Request.UserAgent(),
+			ClientIP:     ctx.ClientIP(),
+			IsBlocked:    false,
+			CreatedAt:    time.Now().UTC(),
+			ExpiresAt:    time.Now().UTC(),
+			DeletedAt:    nil,
+		}
+		err = s.store.InsertSession(session)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create session")
+		}
+
+		resp = &AuthVerificationResponse{
+			AccessToken:           accessToken,
+			AccessTokenExpiresAt:  accessTokenPayload.ExpiredAt,
+			RefreshToken:          refreshToken,
+			RefreshTokenExpiresAt: refreshTokenPayload.ExpiredAt,
+			SessionID:             session.ID,
+			UserInformation: UserInformation{
+				Username:  user.Username,
+				Email:     user.Email,
+				CreatedAt: user.CreatedAt,
+				UpdatedAt: user.UpdatedAt,
+				DeletedAt: time.Time{},
+			},
+			TOTPSecret: totpSecret,
+		}
+
+		return nil, nil
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
@@ -342,6 +530,11 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		return
 	}
 
+	user, err := s.store.GetUser(payload.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(errors.New("user not found")))
+	}
+
 	// Generate a 2-digit code
 	code := fmt.Sprintf("%02d", rand.Intn(100))
 
@@ -350,9 +543,9 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	ip := ctx.ClientIP() // Requires Gin framework setup
 
 	// Store the code temporarily (e.g., in Redis or an in-memory store)
-	err = s.cache.SetData(payload.Username, map[string]interface{}{
+	err = s.cache.SetData(user.Username, map[string]interface{}{
 		"code":        code,
-		"approved":    0,
+		"approved":    "0",
 		"time":        time.Now(),
 		"device_info": deviceInfo,
 		"ip":          ip,
@@ -373,34 +566,32 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		return
 	}
 
-	var approved int
+	var approved int64
 
-	// can i wait for two minutes here?
 	start := time.Now()
 	for time.Since(start) < 2*time.Minute {
-		data, err := s.cache.GetData(payload.Username)
+		time.Sleep(4 * time.Second)
+		data, err := s.cache.GetData(user.Username)
 		if err != nil {
-			return
+			time.Sleep(4 * time.Second)
+			continue
 		}
 
-		value, ok := data["approved"].(int)
-		if !ok {
-			time.Sleep(4 * time.Second)
-		} else {
-			approved = value
+		value := data["approved"].(string)
+		log.Info().Msg(value)
+		if value == "1" || value == "2" {
+			approved, err = strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return
+			}
 			break
 		}
 	}
 
-	if approved == 2 {
-		err := conn.WriteJSON(errorResponse(fmt.Errorf("login failed")))
-		if err != nil {
-			return
-		}
+	if err := conn.WriteJSON(map[string]any{
+		"approved": approved,
+	}); err != nil {
 		return
-	} else if approved == 1 {
-		// Perform any redirection or other post-login tasks as needed
-		fmt.Println("Login approved for user:", payload.Username)
 	}
 }
 
@@ -421,14 +612,10 @@ func (s *Server) GetLoginRequests(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("token expired")))
 	}
 
-	user, err := s.store.GetUser(payload.ID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(errors.New("user not found")))
-	}
-
-	loginRequest, err := s.cache.GetData(user.Username)
-	if err != nil {
+	loginRequest, err := s.cache.GetData(payload.Username)
+	if err != nil || loginRequest == nil {
 		ctx.JSON(http.StatusNotFound, nil)
+		return
 	}
 
 	codesMap := map[string]string{}
@@ -455,14 +642,91 @@ func (s *Server) GetLoginRequests(ctx *gin.Context) {
 		index++
 	}
 
+	parsedTime, err := time.Parse(time.RFC3339Nano, loginRequest["time"].(string))
+	if err != nil {
+		log.Error().Err(err)
+	}
+
 	response := &LoginApproves{
 		Codes:      codes,
 		IP:         loginRequest["ip"].(string),
 		DeviceInfo: loginRequest["device_info"].(string),
-		Time:       loginRequest["time"].(time.Time),
+		Time:       parsedTime,
 	}
 
 	ctx.JSON(http.StatusOK, response)
+}
+
+func (s *Server) ApproveLoginRequests(ctx *gin.Context) {
+	var req *ApproveLoginRequests
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	}
+
+	now := time.Now()
+
+	// decode the access token
+	payload, err := s.tokenMaker.VerifyToken(req.AccessToken)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+	}
+	if payload.ExpiredAt.Before(now) {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("token expired")))
+	}
+
+	loginRequest, err := s.cache.GetData(payload.Username)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, nil)
+	}
+
+	approved := 2
+	code := loginRequest["code"]
+	if code == req.Code {
+		approved = 1
+	}
+	loginRequest["approved"] = strconv.Itoa(approved)
+
+	err = s.cache.SetData(payload.Username, loginRequest, time.Minute*2)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
+
+func (s *Server) RefreshToken(ctx *gin.Context) {
+	var req *RefreshTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	}
+
+	now := time.Now()
+
+	// decode the signup token
+	payload, err := s.tokenMaker.VerifyToken(req.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+	if payload.ExpiredAt.Before(now) {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("token expired")))
+	}
+
+	accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
+		&token.Payload{
+			Username:  payload.Username,
+			IssuedAt:  time.Now(),
+			ExpiredAt: now.Add(15 * time.Minute),
+		})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(errors.New("failed to create refresh token")))
+	}
+
+	ctx.JSON(http.StatusOK, &RefreshTokenResponse{
+		AccessToken:          accessToken,
+		AccessTokenExpiresAt: accessTokenPayload.ExpiredAt,
+	})
 }
 
 func errorResponse(err error) gin.H {

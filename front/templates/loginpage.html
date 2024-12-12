@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="/static/loginpage.css">
+    <script src="https://unpkg.com/htmx.org"></script>
+    <script src="/static/loginpage.js" defer></script>
+</head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login and Verify</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" class="container">
+    <!-- Login Form -->
+    <form id="login-form" class="card" onsubmit="validateLoginForm(event)">
+        <h1>Login</h1>
+        <div class="form-group">
+            <label for="usernameOrEmail">Username or Email:</label>
+            <input type="text" id="usernameOrEmail" class="input" required>
+            <span id="username-error" class="error-message"></span>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" class="input" required>
+            <span id="password-error" class="error-message"></span>
+        </div>
+        <button type="submit" class="button">Login</button>
+        <div id="response-message" class="response-message"></div>
+    </form>
+
+    <!-- Verification Code Form -->
+    <form id="verify-form" class="card" onsubmit="validateVerificationCode(event)" style="display: none;">
+        <h1>Enter Verification Code</h1>
+        <p>Enter the 6-digit code from your Android app:</p>
+        <div id="code-inputs" class="code-input-group">
+            <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 2)">
+            <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 3)">
+            <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 4)">
+            <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 5)">
+            <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 6)">
+            <input type="text" class="code-input" maxlength="1" oninput="moveFocus(this, 6)">
+        </div>
+        <button type="submit" class="button">Verify</button>
+        <div id="verify-response-message" class="response-message"></div>
+        <a href="#" id="try-another-way" onclick="showAlternativeMethod(event)">Try another way</a>
+    </form>
+
+    <!-- Alternative Method Form -->
+    <div id="alternative-method" class="card" style="display: none;">
+        <h1>Alternative Method</h1>
+        <p>We have sent a code to your account. Select the number below in your Android app:</p>
+        <div id="alternative-code" class="code-display">
+            <!-- The number will be dynamically inserted here -->
+        </div>
+        <button type="button" class="button" onclick="goBackToVerification()">Back to Code Entry</button>
+    </div>
+</div>
+
+</body>
+</html>
+
+</html>

@@ -233,6 +233,11 @@ func (s *Server) Login(ctx *gin.Context) {
 		return
 	}
 
+	if err := ValidateOnLogin(s.store, req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
 	var user *db.User
 	var err error
 
@@ -242,7 +247,8 @@ func (s *Server) Login(ctx *gin.Context) {
 		user, err = s.store.GetUserByEmailAndPassword(req.Email, req.Password)
 	}
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, "invalid credentials")
+		ctx.JSON(http.StatusUnauthorized, ErrInvalidCredentials)
+		return
 	}
 
 	// creating tokens
@@ -255,7 +261,8 @@ func (s *Server) Login(ctx *gin.Context) {
 		},
 	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
+		return
 	}
 
 	ctx.JSON(http.StatusOK, &AndroidLoginResponse{LoginToken: loginToken})

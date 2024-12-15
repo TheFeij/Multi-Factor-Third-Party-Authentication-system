@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/mail"
 	"regexp"
+	"strings"
 )
 
 func ValidateOnSignup(store *db.Store, req *SignupRequest) error {
@@ -34,6 +35,29 @@ func ValidateOnSignup(store *db.Store, req *SignupRequest) error {
 		return ErrEmailAlreadyExists
 	}
 	if !errors.Is(err, mongo.ErrNoDocuments) {
+		return err
+	}
+
+	return nil
+}
+
+func ValidateOnLogin(store *db.Store, req *LoginRequest) error {
+	if req.Username == "" && req.Email == "" {
+		return errors.New("username or email must be entered")
+	}
+
+	if strings.TrimSpace(req.Username) != "" {
+		if err := ValidateUsername(req.Username); err != nil {
+			return err
+		}
+	}
+	if strings.TrimSpace(req.Email) != "" {
+		if err := ValidateEmail(req.Email); err != nil {
+			return err
+		}
+	}
+
+	if err := ValidatePassword(req.Password); err != nil {
 		return err
 	}
 

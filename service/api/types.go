@@ -22,15 +22,15 @@ type VerifyAndroidLoginRequest struct {
 }
 
 type LoginRequest struct {
-	Username string `json:"username,omitempty"  binding:"validUsername"`
-	Email    string `json:"email,omitempty"  binding:"ValidEmail"`
-	Password string `json:"password,omitempty"  binding:"validPassword"`
+	Username string `json:"username,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type SignupRequest struct {
-	Username string `json:"username" binding:"validUsername"`
-	Password string `json:"password" binding:"validPassword"`
-	Email    string `json:"email" binding:"ValidEmail"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
 }
 
 type AuthVerificationResponse struct {
@@ -64,13 +64,6 @@ func ConvertSignupRequestToModel(req *SignupRequest) *db.TempUser {
 	return &db.TempUser{
 		Username: req.Username,
 		Email:    req.Email,
-		Password: req.Password,
-	}
-}
-
-func ConvertLoginRequestToModel(req *LoginRequest) *db.User {
-	return &db.User{
-		Username: req.Username,
 		Password: req.Password,
 	}
 }

@@ -33,3 +33,7 @@ var (
 	ErrUsernameEmailNotFound = fmt.Errorf("نام کاربری / ایمیل یافت نشد")
 	ErrInvalidPassword       = fmt.Errorf("گذرواژه صحیح نیست")
 )
+
+var (
+	ErrInvalidCredentials = fmt.Errorf("اطلاعات وارد شده صحیح نیست")
+)

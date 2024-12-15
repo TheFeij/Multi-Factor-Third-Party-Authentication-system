@@ -36,6 +36,7 @@ func (s *Server) Signup(ctx *gin.Context) {
 
 	if err := ValidateOnSignup(s.store, req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
 	}
 
 	var tempUser *db.TempUser
@@ -74,7 +75,7 @@ func (s *Server) Signup(ctx *gin.Context) {
 		return nil, nil
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
 		return
 	}
 
@@ -88,11 +89,10 @@ func (s *Server) Signup(ctx *gin.Context) {
 	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
+		return
 	}
 
-	resp := &SignupResponse{SignupToken: signupToken}
-
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, &SignupResponse{SignupToken: signupToken})
 }
 
 func (s *Server) VerifyEmail(ctx *gin.Context) {
@@ -269,7 +269,10 @@ func (s *Server) AndroidAppLogin(ctx *gin.Context) {
 		return
 	}
 
-	now := time.Now()
+	if err := ValidateOnLogin(s.store, req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	var tempUser *db.TempUser
 	// Start a MongoDB session for the transaction
@@ -283,7 +286,7 @@ func (s *Server) AndroidAppLogin(ctx *gin.Context) {
 			user, err = s.store.GetUserByEmailAndPassword(req.Email, req.Password)
 		}
 		if err != nil {
-			ctx.JSON(http.StatusUnauthorized, "invalid credentials")
+			ctx.JSON(http.StatusUnauthorized, errorResponse(ErrInvalidCredentials))
 			return nil, err
 		}
 
@@ -292,7 +295,7 @@ func (s *Server) AndroidAppLogin(ctx *gin.Context) {
 			Username:   user.Username,
 			Email:      user.Email,
 			Password:   user.Password,
-			ExpiredAt:  now.Add(time.Minute * 10),
+			ExpiredAt:  time.Now().Add(time.Minute * 10),
 			SecretCode: util.RandomString(6, util.NUMBERS),
 		}
 
@@ -317,7 +320,7 @@ func (s *Server) AndroidAppLogin(ctx *gin.Context) {
 		return nil, nil
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
 		return
 	}
 
@@ -327,11 +330,12 @@ func (s *Server) AndroidAppLogin(ctx *gin.Context) {
 			ID:        tempUser.ID,
 			Username:  "",
 			IssuedAt:  time.Now(),
-			ExpiredAt: now.Add(10 * time.Minute),
+			ExpiredAt: time.Now().Add(10 * time.Minute),
 		},
 	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
+		return
 	}
 
 	ctx.JSON(http.StatusOK, &AndroidLoginResponse{LoginToken: loginToken})

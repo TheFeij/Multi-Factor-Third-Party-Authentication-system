@@ -99,9 +99,8 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 	var req *VerifyEmailRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
 	}
-
-	now := time.Now()
 
 	// decode the signup token
 	payload, err := s.tokenMaker.VerifyToken(req.SignupToken)
@@ -109,7 +108,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
-	if payload.ExpiredAt.Before(now) {
+	if payload.ExpiredAt.Before(time.Now()) {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("token expired")))
 	}
 

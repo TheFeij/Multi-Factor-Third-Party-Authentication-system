@@ -36,4 +36,6 @@ var (
 
 var (
 	ErrInvalidCredentials = fmt.Errorf("اطلاعات وارد شده صحیح نیست")
+	ErrExpiredLoginToken  = fmt.Errorf("جلسه منقضی شده، لطفا مجددا از قسمت ورود به حساب شروع کنید")
+	ErrExpiredSignupToken = fmt.Errorf("جلسه منقضی شده، لطفا مجددا از قسمت ثبت‌نام شروع کنید")
 )

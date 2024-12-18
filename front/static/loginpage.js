@@ -1,6 +1,7 @@
 // Login form submission
 function validateLoginForm(event) {
     event.preventDefault();
+
     const usernameOrEmail = document.getElementById("usernameOrEmail").value.trim();
     const password = document.getElementById("password").value.trim();
     let isValid = true;
@@ -20,6 +21,12 @@ function validateLoginForm(event) {
     }
 
     if (isValid) {
+        // Extract query parameters from the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientId = urlParams.get("client_id");
+        const redirectUri = urlParams.get("redirect_uri");
+        const responseType = urlParams.get("response_type");
+
         // Simulate server request and response
         fetch("https://localhost:8080/api/login", {
             method: "POST",
@@ -30,13 +37,15 @@ function validateLoginForm(event) {
                 username: /^[a-zA-Z0-9_.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(usernameOrEmail) ? "" : usernameOrEmail,
                 email: /^[a-zA-Z0-9_.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(usernameOrEmail) ? usernameOrEmail : "",
                 password: password,
+                client_id: clientId,
+                redirect_uri: redirectUri,
+                response_type: responseType,
             }),
         })
             .then(response => response.json())
             .then(data => {
-                console.log(data)
                 if (data.login_token) {
-                    // Store the SignupToken (you can choose to use sessionStorage or localStorage)
+                    // Store the LoginToken
                     localStorage.setItem("loginToken", data.login_token);
 
                     // Hide the login form and show the verification form
@@ -64,13 +73,24 @@ function validateVerificationCode(event) {
     let loginToken = localStorage.getItem("loginToken");
     console.log(loginToken)
 
+    // Extract query parameters from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get("client_id");
+    const redirectUri = urlParams.get("redirect_uri");
+    const responseType = urlParams.get("response_type");
+
     if (totp.length === 6) {
         fetch("https://localhost:8080/api/totp-approve", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ login_token: loginToken, totp: totp }),
+            body: JSON.stringify({
+                login_token: loginToken,
+                totp: totp,
+                client_id: clientId,
+                redirect_uri: redirectUri,
+                response_type: responseType}),
         })
             .then(response => {
                 console.log(response)
@@ -106,6 +126,12 @@ function showAlternativeMethod(event) {
     document.getElementById('verify-form').style.display = 'none';
     document.getElementById('alternative-method').style.display = 'block';
 
+    // Extract query parameters from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get("client_id");
+    const redirectUri = urlParams.get("redirect_uri");
+    const responseType = urlParams.get("response_type");
+
     // Open a WebSocket connection to the server
     const socket = new WebSocket('wss://localhost:8080/api/notif-approve');
 
@@ -113,6 +139,9 @@ function showAlternativeMethod(event) {
     const loginToken = localStorage.getItem('loginToken'); // Retrieve the signup token
     const requestPayload = {
         login_token: loginToken,  // Send the loginToken as loginToken
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: responseType
     };
 
     socket.onopen = function() {

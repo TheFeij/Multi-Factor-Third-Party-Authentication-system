@@ -121,7 +121,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 		if err != nil {
 			return nil, err
 		}
-		if tempUser.ExpiredAt.Before(now) {
+		if tempUser.ExpiredAt.Before(time.Now()) {
 			return nil, fmt.Errorf("token expired")
 		}
 
@@ -167,7 +167,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 			&token.Payload{
 				Username:  user.Username,
 				IssuedAt:  time.Now(),
-				ExpiredAt: now.Add(30 * 24 * time.Hour),
+				ExpiredAt: time.Now().Add(30 * 24 * time.Hour),
 			})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create refresh token")
@@ -177,7 +177,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 			&token.Payload{
 				Username:  user.Username,
 				IssuedAt:  time.Now(),
-				ExpiredAt: now.Add(15 * time.Minute),
+				ExpiredAt: time.Now().Add(15 * time.Minute),
 			})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create refresh token")
@@ -225,6 +225,16 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 }
 
 func (s *Server) Login(ctx *gin.Context) {
+	clientID := ctx.Query("client_id")
+	redirectURI := ctx.Query("redirect_uri")
+	responseType := ctx.Query("response_type")
+
+	// Validate the authorization request
+	if clientID == "" || redirectURI == "" || responseType != "code" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid authorization request"})
+		return
+	}
+
 	var req *LoginRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -459,6 +469,16 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 }
 
 func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
+	clientID := ctx.Query("client_id")
+	redirectURI := ctx.Query("redirect_uri")
+	responseType := ctx.Query("response_type")
+
+	// Validate the authorization request
+	if clientID == "" || redirectURI == "" || responseType != "code" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid authorization request"})
+		return
+	}
+
 	var req *VerifyLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -499,10 +519,33 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 	}
 
-	ctx.Status(http.StatusOK)
+	// Generate an authorization code
+	authCode, _, err := s.tokenMaker.CreateToken(&token.Payload{
+		ID:        payload.ID,
+		IssuedAt:  time.Now(),
+		ExpiredAt: time.Now().Add(10 * time.Minute),
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate authorization code"})
+		return
+	}
+
+	// Redirect to the callback URI with the authorization code
+	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, authCode)
+	ctx.Redirect(http.StatusFound, redirectURL)
 }
 
 func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
+	clientID := ctx.Query("client_id")
+	redirectURI := ctx.Query("redirect_uri")
+	responseType := ctx.Query("response_type")
+
+	// Validate the authorization request
+	if clientID == "" || redirectURI == "" || responseType != "code" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid authorization request"})
+		return
+	}
+
 	// Upgrade the HTTP connection to a WebSocket
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -603,6 +646,21 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	}); err != nil {
 		return
 	}
+
+	// Generate an authorization code
+	authCode, _, err := s.tokenMaker.CreateToken(&token.Payload{
+		ID:        user.ID,
+		IssuedAt:  time.Now(),
+		ExpiredAt: time.Now().Add(10 * time.Minute),
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate authorization code"})
+		return
+	}
+
+	// Redirect to the callback URI with the authorization code
+	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, authCode)
+	ctx.Redirect(http.StatusFound, redirectURL)
 }
 
 func (s *Server) GetLoginRequests(ctx *gin.Context) {

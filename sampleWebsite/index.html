@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Site - Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+    <div class="login-card">
+        <h1>Login to Sample Site</h1>
+        <p>Access exclusive content by logging in.</p>
+        <button class="oauth-button" onclick="redirectToAuth()">Log in with Authentication System</button>
+    </div>
+</div>
+
+<script>
+    // Redirect user to authentication system
+    function redirectToAuth() {
+        const clientId = "sample-site-client-id";
+        const redirectUri = encodeURIComponent("https://localhost:4040/callback");
+        const authUrl = `https://localhost:8080/login?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
+        window.location.href = authUrl;
+    }
+</script>
+</body>
+</html>

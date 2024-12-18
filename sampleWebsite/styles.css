@@ -1,0 +1,64 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Background */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1d1d1d, #444);
+    color: #fff;
+}
+
+/* Container */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+/* Login Card */
+.login-card {
+    background: #2a2a2a;
+    border-radius: 10px;
+    padding: 30px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.login-card h1 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.login-card p {
+    margin-bottom: 20px;
+    color: #ccc;
+}
+
+/* OAuth Button */
+.oauth-button {
+    width: 100%;
+    padding: 10px 0;
+    background: #6a5acd;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.oauth-button:hover {
+    background: #5a4ab8;
+}

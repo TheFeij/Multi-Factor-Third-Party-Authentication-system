@@ -33,7 +33,7 @@ func main() {
 		}
 
 		// Create a JSON payload with the access token
-		payload := map[string]string{"accessToken": token}
+		payload := map[string]string{"access_token": token}
 		payloadBytes, err := json.Marshal(payload)
 		if err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request payload"})
@@ -41,7 +41,7 @@ func main() {
 		}
 
 		// Make a POST request to the authentication server
-		req, err := http.NewRequest("POST", "https://localhost:8080/api/userinfo", bytes.NewBuffer(payloadBytes))
+		req, err := http.NewRequest("POST", "http://localhost:8081/userinfo", bytes.NewBuffer(payloadBytes))
 		if err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create POST request"})
 			return
@@ -81,7 +81,7 @@ func main() {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
-	err := router.RunTLS(":4040", "./service/certificates/server.crt", "./service/certificates/server.key")
+	err := router.Run(":4040")
 	if err != nil {
 		return
 	}

@@ -80,7 +80,7 @@ func (s *Server) setupRouter() {
 }
 
 func (s *Server) Start(address, cert, key string) error {
-	return s.router.RunTLS(address, cert, key)
+	return s.router.Run(address)
 }
 
 func (s *Server) RouterServeHTTP(recorder *httptest.ResponseRecorder, req *http.Request) {

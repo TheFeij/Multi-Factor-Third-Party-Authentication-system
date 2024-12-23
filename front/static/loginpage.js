@@ -28,7 +28,7 @@ function validateLoginForm(event) {
         const responseType = urlParams.get("response_type");
 
         // Simulate server request and response
-        fetch("https://localhost:8080/api/login", {
+        fetch("http://localhost:8080/api/login", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -80,7 +80,7 @@ function validateVerificationCode(event) {
     const responseType = urlParams.get("response_type");
 
     if (totp.length === 6) {
-        fetch("https://localhost:8080/api/totp-approve", {
+        fetch("http://localhost:8080/api/totp-approve", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -92,14 +92,14 @@ function validateVerificationCode(event) {
                 redirect_uri: redirectUri,
                 response_type: responseType}),
         })
-            .then(response => {
-                console.log(response)
-                if (response.ok) {
+            .then(response => response.json())
+            .then(data => {
+                debugger;
+                if (data) {
                     document.getElementById("verify-response-message").innerText = "Code verified successfully!";
+                    window.location.href = data.redirect_url;
                 } else {
-                    response.json().then(data => {
-                        document.getElementById("verify-response-message").innerText = data.error || "Invalid code.";
-                    });
+                    document.getElementById("verify-response-message").innerText = data.error || "Invalid code.";
                 }
             })
             .catch(err => {

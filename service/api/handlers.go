@@ -539,7 +539,9 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 
 	// Redirect to the callback URI with the authorization code
 	redirectURL := fmt.Sprintf("%s?token=%s", req.RedirectUri, authCode)
-	ctx.Redirect(http.StatusFound, redirectURL)
+	ctx.JSON(http.StatusOK, gin.H{
+		"redirect_url": redirectURL,
+	})
 }
 
 func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {

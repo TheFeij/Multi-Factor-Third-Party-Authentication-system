@@ -49,7 +49,7 @@ func (s *Server) setupRouter() {
 
 	// OAuth endpoints
 	s.router.POST("/oauth/token", s.Token)
-	s.router.GET("/userinfo", s.UserInfo)
+	s.router.POST("/userinfo", s.UserInfo)
 }
 
 func (s *Server) Start(address string) error {

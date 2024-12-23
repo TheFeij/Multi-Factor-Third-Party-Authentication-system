@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	log.Info().Msg(fmt.Sprintf("server started on :4040"))
+	log.Info().Msg(fmt.Sprintf("server started on :8081"))
 
 	log.Info().Msg("starting server...")
 	err = server.Start(":8081")

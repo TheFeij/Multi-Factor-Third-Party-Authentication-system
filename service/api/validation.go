@@ -71,23 +71,16 @@ func ValidateOnLogin(store *db.Store, req *LoginRequest) error {
 }
 
 func ValidateOnAndroidAppLogin(store *db.Store, req *LoginRequest) error {
-	if req.Username == "" && req.Email == "" {
+	if strings.TrimSpace(req.Username) == "" && strings.TrimSpace(req.Email) == "" {
 		return errors.New("username or email must be entered")
 	}
 
-	if strings.TrimSpace(req.Username) != "" {
-		if err := ValidateUsername(req.Username); err != nil {
-			return err
-		}
-	}
-	if strings.TrimSpace(req.Email) != "" {
-		if err := ValidateEmail(req.Email); err != nil {
-			return err
-		}
+	if strings.TrimSpace(req.Password) == "" {
+		return errors.New("password cannot be empty")
 	}
 
-	if err := ValidatePassword(req.Password); err != nil {
-		return err
+	if len(req.Password) < 8 {
+		return errors.New("password cannot be less than 8 characters")
 	}
 
 	return nil

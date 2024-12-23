@@ -70,6 +70,29 @@ func ValidateOnLogin(store *db.Store, req *LoginRequest) error {
 	return nil
 }
 
+func ValidateOnAndroidAppLogin(store *db.Store, req *LoginRequest) error {
+	if req.Username == "" && req.Email == "" {
+		return errors.New("username or email must be entered")
+	}
+
+	if strings.TrimSpace(req.Username) != "" {
+		if err := ValidateUsername(req.Username); err != nil {
+			return err
+		}
+	}
+	if strings.TrimSpace(req.Email) != "" {
+		if err := ValidateEmail(req.Email); err != nil {
+			return err
+		}
+	}
+
+	if err := ValidatePassword(req.Password); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func ValidateUsername(username string) error {
 	if len(username) < 4 {
 		return ErrUsernameTooShort

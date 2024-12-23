@@ -292,7 +292,7 @@ func (s *Server) AndroidAppLogin(ctx *gin.Context) {
 		return
 	}
 
-	if err := ValidateOnLogin(s.store, req); err != nil {
+	if err := ValidateOnAndroidAppLogin(s.store, req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}

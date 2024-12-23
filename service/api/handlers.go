@@ -225,16 +225,6 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 }
 
 func (s *Server) Login(ctx *gin.Context) {
-	clientID := ctx.Query("client_id")
-	redirectURI := ctx.Query("redirect_uri")
-	responseType := ctx.Query("response_type")
-
-	// Validate the authorization request
-	if clientID == "" || redirectURI == "" || responseType != "code" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid authorization request"})
-		return
-	}
-
 	var req *LoginRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -247,8 +237,13 @@ func (s *Server) Login(ctx *gin.Context) {
 		return
 	}
 
+	clientIDInt, err := strconv.ParseInt(req.ClientID, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
 	var user *db.User
-	var err error
 
 	if req.Username != "" {
 		user, err = s.store.GetUserByUsernameAndPassword(req.Username, req.Password)
@@ -257,6 +252,18 @@ func (s *Server) Login(ctx *gin.Context) {
 	}
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, ErrInvalidCredentials)
+		return
+	}
+
+	err = s.store.InsertThirdPartyLoginRequests(&db.ThirdPartyLoginRequests{
+		ClientID:    clientIDInt,
+		RedirectUrl: req.RedirectUri,
+		Username:    user.Username,
+		CreatedAt:   time.Now(),
+		ExpiresAt:   time.Now().Add(10 * time.Minute),
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
 		return
 	}
 
@@ -469,19 +476,15 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 }
 
 func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
-	clientID := ctx.Query("client_id")
-	redirectURI := ctx.Query("redirect_uri")
-	responseType := ctx.Query("response_type")
-
-	// Validate the authorization request
-	if clientID == "" || redirectURI == "" || responseType != "code" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid authorization request"})
-		return
-	}
-
 	var req *VerifyLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	}
+
+	clientIDInt, err := strconv.ParseInt(req.ClientID, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
 	}
 
 	now := time.Now()
@@ -511,7 +514,11 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid TOTP code")))
 		}
 
-		// Redirect to the site and insert related stuff
+		thirdPartyRequest, err := s.store.GetThirdPartyLoginRequests(user.Username, clientIDInt)
+		if err != nil {
+			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid clientID")))
+		}
+		req.RedirectUri = thirdPartyRequest.RedirectUrl
 
 		return nil, err
 	})
@@ -531,21 +538,11 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 	}
 
 	// Redirect to the callback URI with the authorization code
-	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, authCode)
+	redirectURL := fmt.Sprintf("%s?token=%s", req.RedirectUri, authCode)
 	ctx.Redirect(http.StatusFound, redirectURL)
 }
 
 func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
-	clientID := ctx.Query("client_id")
-	redirectURI := ctx.Query("redirect_uri")
-	responseType := ctx.Query("response_type")
-
-	// Validate the authorization request
-	if clientID == "" || redirectURI == "" || responseType != "code" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid authorization request"})
-		return
-	}
-
 	// Upgrade the HTTP connection to a WebSocket
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -563,6 +560,12 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		}
 		return
 	}
+
+	//clientIDInt, err := strconv.ParseInt(req.ClientID, 10, 64)
+	//if err != nil {
+	//	ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	//	return
+	//}
 
 	now := time.Now()
 
@@ -659,7 +662,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	}
 
 	// Redirect to the callback URI with the authorization code
-	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, authCode)
+	redirectURL := fmt.Sprintf("%s?code=%s", req.RedirectUri, authCode)
 	ctx.Redirect(http.StatusFound, redirectURL)
 }
 

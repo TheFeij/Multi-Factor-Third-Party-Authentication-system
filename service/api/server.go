@@ -73,10 +73,6 @@ func (s *Server) setupRouter() {
 	s.router.POST("api/approve-login", s.ApproveLoginRequests)
 	s.router.POST("api/refresh-token", s.RefreshToken)
 
-	// OAuth endpoints
-	s.router.POST("/oauth/token", s.Token)
-	s.router.GET("/userinfo", s.UserInfo)
-
 	//// Handle requests that don't match any defined routes
 	//s.router.NoRoute(func(c *gin.Context) {
 	//	c.Redirect(http.StatusPermanentRedirect, "/home")

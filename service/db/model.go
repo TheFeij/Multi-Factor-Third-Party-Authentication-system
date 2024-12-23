@@ -48,3 +48,12 @@ type Session struct {
 	ExpiresAt    time.Time          `bson:"expires_at"`           // Expiration time for the session
 	DeletedAt    *time.Time         `bson:"deleted_at,omitempty"` // Deleted time, if soft delete is used
 }
+
+type ThirdPartyLoginRequests struct {
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	Username    string             `bson:"username"`
+	ClientID    int64              `bson:"client_id"`
+	RedirectUrl string             `bson:"redirect_url"`
+	CreatedAt   time.Time          `bson:"created_at"`
+	ExpiresAt   time.Time          `bson:"expires_at"`
+}

@@ -12,8 +12,10 @@ type VerifyEmailRequest struct {
 }
 
 type VerifyLoginRequest struct {
-	LoginToken string `json:"login_token"`
-	TOTP       string `json:"totp"`
+	LoginToken  string `json:"login_token"`
+	TOTP        string `json:"totp"`
+	ClientID    string `json:"client_id"`
+	RedirectUri string `json:"redirect_uri"`
 }
 
 type VerifyAndroidLoginRequest struct {
@@ -22,9 +24,11 @@ type VerifyAndroidLoginRequest struct {
 }
 
 type LoginRequest struct {
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Password string `json:"password,omitempty"`
+	Username    string `json:"username,omitempty"`
+	Email       string `json:"email,omitempty"`
+	Password    string `json:"password,omitempty"`
+	ClientID    string `json:"client_id"`
+	RedirectUri string `json:"redirect_uri"`
 }
 
 type SignupRequest struct {
@@ -91,4 +95,13 @@ type RefreshTokenRequest struct {
 type RefreshTokenResponse struct {
 	AccessToken          string    `json:"access_token,omitempty"`
 	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
+}
+
+type GetUserRequest struct {
+	AccessToken string `json:"access_token,omitempty"`
+}
+
+type GetUserResponse struct {
+	Username string `json:"username,omitempty"`
+	Email    string `json:"email,omitempty"`
 }

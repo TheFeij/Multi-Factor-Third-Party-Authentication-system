@@ -3,6 +3,7 @@ package api
 import (
 	"Third-Party-Multi-Factor-Authentication-System/service/db"
 	"errors"
+	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/mail"
 	"regexp"
@@ -59,6 +60,11 @@ func ValidateOnLogin(store *db.Store, req *LoginRequest) error {
 
 	if err := ValidatePassword(req.Password); err != nil {
 		return err
+	}
+
+	// Validate the authorization request
+	if req.ClientID == "" || req.RedirectUri == "" {
+		return fmt.Errorf("invalid request")
 	}
 
 	return nil

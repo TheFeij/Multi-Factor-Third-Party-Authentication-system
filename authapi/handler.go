@@ -1,4 +1,4 @@
-package api
+package authapi
 
 import (
 	"Third-Party-Multi-Factor-Authentication-System/service/tokenmanager/token"

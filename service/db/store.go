@@ -408,9 +408,6 @@ func (s *Store) GetUserByEmail(email string) (*User, error) {
 	// Find the user by email
 	err := collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errors.New("user not found")
-		}
 		return nil, err
 	}
 
@@ -439,6 +436,53 @@ func (s *Store) InsertActivityLog(log *ActivityLog) error {
 
 	fmt.Println("Activity log inserted successfully")
 	return nil
+}
+
+func (s *Store) InsertThirdPartyLoginRequests(req *ThirdPartyLoginRequests) error {
+	// Get the activity_logs collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
+
+	// Set CreatedAt and UpdatedAt fields before insertion
+	now := time.Now().UTC()
+	req.CreatedAt = now
+
+	// Insert the log document
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.InsertOne(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	req.ID = result.InsertedID.(primitive.ObjectID)
+
+	fmt.Println("third party login request inserted successfully")
+	return nil
+}
+
+func (s *Store) GetThirdPartyLoginRequests(username string, clientID int64) (*ThirdPartyLoginRequests, error) {
+	// Get the users collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
+
+	// Context for the query
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Variable to store the result
+	var req ThirdPartyLoginRequests
+
+	// Find the user by email
+	err := collection.FindOne(ctx, bson.M{"username": username, "client_id": clientID}).Decode(&req)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
+	// Return the found user
+	return &req, nil
 }
 
 func (s *Store) InsertSession(session *Session) error {

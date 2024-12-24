@@ -438,7 +438,7 @@ func (s *Store) InsertActivityLog(log *ActivityLog) error {
 	return nil
 }
 
-func (s *Store) InsertThirdPartyLoginRequests(req *ThirdPartyLoginRequests) error {
+func (s *Store) InsertThirdPartyLoginRequests(sessCtx mongo.SessionContext, req *ThirdPartyLoginRequests) error {
 	// Get the activity_logs collection from the database
 	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
 
@@ -446,11 +446,7 @@ func (s *Store) InsertThirdPartyLoginRequests(req *ThirdPartyLoginRequests) erro
 	now := time.Now().UTC()
 	req.CreatedAt = now
 
-	// Insert the log document
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	result, err := collection.InsertOne(ctx, req)
+	result, err := collection.InsertOne(sessCtx, req)
 	if err != nil {
 		return err
 	}
@@ -458,6 +454,31 @@ func (s *Store) InsertThirdPartyLoginRequests(req *ThirdPartyLoginRequests) erro
 	req.ID = result.InsertedID.(primitive.ObjectID)
 
 	fmt.Println("third party login request inserted successfully")
+	return nil
+}
+
+func (s *Store) RemoveThirdPartyLoginRequest(sessCtx mongo.SessionContext, username, clientID string) error {
+	// Get the third_party_login_requests collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
+
+	// Create the filter to match the username and clientID
+	filter := bson.M{
+		"username":  username,
+		"client_id": clientID,
+	}
+
+	// Perform the delete operation
+	result, err := collection.DeleteMany(sessCtx, filter)
+	if err != nil {
+		return err
+	}
+
+	// Check if any documents were deleted
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("no matching request found to delete")
+	}
+
+	fmt.Println("Third party login request removed successfully")
 	return nil
 }
 

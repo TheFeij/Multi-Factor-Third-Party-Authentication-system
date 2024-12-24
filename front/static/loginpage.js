@@ -94,7 +94,6 @@ function validateVerificationCode(event) {
         })
             .then(response => response.json())
             .then(data => {
-                debugger;
                 if (data) {
                     document.getElementById("verify-response-message").innerText = "Code verified successfully!";
                     window.location.href = data.redirect_url;
@@ -133,7 +132,7 @@ function showAlternativeMethod(event) {
     const responseType = urlParams.get("response_type");
 
     // Open a WebSocket connection to the server
-    const socket = new WebSocket('wss://localhost:8080/api/notif-approve');
+    const socket = new WebSocket('ws://localhost:8080/api/notif-approve');
 
     // Create the object to send to the server (with the SignupToken)
     const loginToken = localStorage.getItem('loginToken'); // Retrieve the signup token

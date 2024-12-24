@@ -255,27 +255,39 @@ func (s *Server) Login(ctx *gin.Context) {
 		return
 	}
 
-	err = s.store.InsertThirdPartyLoginRequests(&db.ThirdPartyLoginRequests{
-		ClientID:    clientIDInt,
-		RedirectUrl: req.RedirectUri,
-		Username:    user.Username,
-		CreatedAt:   time.Now(),
-		ExpiresAt:   time.Now().Add(10 * time.Minute),
-	})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
-		return
-	}
+	var loginToken string
+	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		err = s.store.RemoveThirdPartyLoginRequest(sessCtx, req.Username, req.ClientID)
+		if err != nil {
+			return nil, errors.New("failed to remove older requests")
+		}
 
-	// creating tokens
-	loginToken, _, err := s.tokenMaker.CreateToken(
-		&token.Payload{
-			ID:        user.ID,
-			Username:  "",
-			IssuedAt:  time.Now(),
-			ExpiredAt: time.Now().Add(10 * time.Minute),
-		},
-	)
+		err = s.store.InsertThirdPartyLoginRequests(sessCtx, &db.ThirdPartyLoginRequests{
+			ClientID:    clientIDInt,
+			RedirectUrl: req.RedirectUri,
+			Username:    user.Username,
+			CreatedAt:   time.Now(),
+			ExpiresAt:   time.Now().Add(10 * time.Minute),
+		})
+		if err != nil {
+			return nil, errors.New("failed to insert request")
+		}
+
+		// creating tokens
+		loginToken, _, err = s.tokenMaker.CreateToken(
+			&token.Payload{
+				ID:        user.ID,
+				Username:  "",
+				IssuedAt:  time.Now(),
+				ExpiredAt: time.Now().Add(10 * time.Minute),
+			},
+		)
+		if err != nil {
+			return nil, errors.New("failed to create login token")
+		}
+
+		return nil, nil
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
 		return
@@ -518,6 +530,9 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 		if err != nil {
 			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid clientID")))
 		}
+		if thirdPartyRequest.ExpiresAt.Before(time.Now()) {
+			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("request expired")))
+		}
 		req.RedirectUri = thirdPartyRequest.RedirectUrl
 
 		return nil, err
@@ -563,13 +578,11 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		return
 	}
 
-	//clientIDInt, err := strconv.ParseInt(req.ClientID, 10, 64)
-	//if err != nil {
-	//	ctx.JSON(http.StatusBadRequest, errorResponse(err))
-	//	return
-	//}
-
-	now := time.Now()
+	clientIDInt, err := strconv.ParseInt(req.ClientID, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	// Decode the login token
 	payload, err := s.tokenMaker.VerifyToken(req.LoginToken)
@@ -580,7 +593,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		}
 		return
 	}
-	if payload.ExpiredAt.Before(now) {
+	if payload.ExpiredAt.Before(time.Now()) {
 		err := conn.WriteJSON(errorResponse(fmt.Errorf("token expired")))
 		if err != nil {
 			return
@@ -592,6 +605,17 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(errors.New("user not found")))
 	}
+
+	thirdPartyRequest, err := s.store.GetThirdPartyLoginRequests(user.Username, clientIDInt)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid clientID")))
+		return
+	}
+	if thirdPartyRequest.ExpiresAt.Before(time.Now()) {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("request expired")))
+		return
+	}
+	req.RedirectUri = thirdPartyRequest.RedirectUrl
 
 	// Generate a 2-digit code
 	code := fmt.Sprintf("%02d", rand.Intn(100))
@@ -664,8 +688,10 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	}
 
 	// Redirect to the callback URI with the authorization code
-	redirectURL := fmt.Sprintf("%s?code=%s", req.RedirectUri, authCode)
-	ctx.Redirect(http.StatusFound, redirectURL)
+	redirectURL := fmt.Sprintf("%s?token=%s", req.RedirectUri, authCode)
+	ctx.JSON(http.StatusOK, gin.H{
+		"redirect_url": redirectURL,
+	})
 }
 
 func (s *Server) GetLoginRequests(ctx *gin.Context) {

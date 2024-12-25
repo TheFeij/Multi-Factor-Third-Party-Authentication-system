@@ -50,10 +50,10 @@ func (s *Server) setupRouter() {
 	s.router.Use(cors.New(config))
 
 	// Serve static files
-	s.router.Static("/static", "./front/static")
+	s.router.Static("/static", "./authentication-server/front/static")
 
 	// Set the directory for HTML templates
-	s.router.LoadHTMLGlob("./front/templates/*.html")
+	s.router.LoadHTMLGlob("./authentication-server/front/templates/*.html")
 
 	s.router.GET("/login", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "loginpage.html", nil)

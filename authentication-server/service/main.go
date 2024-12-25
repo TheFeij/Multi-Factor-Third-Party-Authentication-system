@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	configs, err := config.LoadConfig("./service/config", "config.json")
+	configs, err := config.LoadConfig("./authentication-server/service/config", "config.json")
 	if err != nil {
 		panic(fmt.Sprintf("could not load configs: %v", err.Error()))
 	}

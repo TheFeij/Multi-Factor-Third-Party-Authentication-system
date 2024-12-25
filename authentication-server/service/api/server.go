@@ -1,11 +1,11 @@
 package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/service/cache"
-	"Third-Party-Multi-Factor-Authentication-System/service/config"
-	"Third-Party-Multi-Factor-Authentication-System/service/db"
-	"Third-Party-Multi-Factor-Authentication-System/service/tokenmanager/token"
-	"Third-Party-Multi-Factor-Authentication-System/service/worker"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/cache"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/config"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/db"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/tokenmanager/token"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/worker"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"

@@ -1,7 +1,7 @@
-package authapi
+package authorization_server
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/service/tokenmanager/token"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/tokenmanager/token"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"

@@ -1,8 +1,8 @@
 package worker
 
 import (
-	db2 "Third-Party-Multi-Factor-Authentication-System/service/db"
-	"Third-Party-Multi-Factor-Authentication-System/service/email"
+	db2 "Third-Party-Multi-Factor-Authentication-System/authentication-server/service/db"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/email"
 	"context"
 	"encoding/json"
 	"errors"

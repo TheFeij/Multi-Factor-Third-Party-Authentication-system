@@ -1,10 +1,10 @@
 package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/service/db"
-	"Third-Party-Multi-Factor-Authentication-System/service/tokenmanager/token"
-	"Third-Party-Multi-Factor-Authentication-System/service/util"
-	"Third-Party-Multi-Factor-Authentication-System/service/worker"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/db"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/tokenmanager/token"
+	util2 "Third-Party-Multi-Factor-Authentication-System/authentication-server/service/util"
+	worker2 "Third-Party-Multi-Factor-Authentication-System/authentication-server/service/worker"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -43,7 +43,7 @@ func (s *Server) Signup(ctx *gin.Context) {
 	// Start a MongoDB session for the transaction
 	err := s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
 		// Step 1: Hash the password
-		hashedPassword, err := util.HashPassword(req.Password)
+		hashedPassword, err := util2.HashPassword(req.Password)
 		if err != nil {
 			return nil, fmt.Errorf("failed to hash password: %v", err)
 		}
@@ -51,7 +51,7 @@ func (s *Server) Signup(ctx *gin.Context) {
 		// Step 2: Create the user model
 		tempUser = ConvertSignupRequestToModel(req)
 		tempUser.Password = hashedPassword
-		tempUser.SecretCode = util.RandomString(6, util.NUMBERS)
+		tempUser.SecretCode = util2.RandomString(6, util2.NUMBERS)
 		tempUser.ExpiredAt = time.Now().Add(24 * time.Hour)
 
 		// Step 3: Insert the user into the database
@@ -61,11 +61,11 @@ func (s *Server) Signup(ctx *gin.Context) {
 		}
 
 		// Step 4: Enqueue the task for sending the verification email
-		taskPayload := &worker.SendVerificationEmailPayload{ID: tempUser.ID}
+		taskPayload := &worker2.SendVerificationEmailPayload{ID: tempUser.ID}
 		opts := []asynq.Option{
 			asynq.MaxRetry(10),
 			asynq.ProcessIn(time.Second),
-			asynq.Queue(worker.CriticalQueue),
+			asynq.Queue(worker2.CriticalQueue),
 		}
 		err = s.taskDistributor.SendVerificationEmail(sessCtx, taskPayload, opts...)
 		if err != nil {
@@ -145,7 +145,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 			log.Error().Msg(fmt.Sprintf("Failed to generate TOTP key: %v", err))
 		}
 
-		cipherKey, err := util.Encrypt(key.Secret(), s.configs.EncryptionKey)
+		cipherKey, err := util2.Encrypt(key.Secret(), s.configs.EncryptionKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encrypt")
 		}
@@ -331,7 +331,7 @@ func (s *Server) AndroidAppLogin(ctx *gin.Context) {
 			Email:      user.Email,
 			Password:   user.Password,
 			ExpiredAt:  time.Now().Add(time.Minute * 10),
-			SecretCode: util.RandomString(6, util.NUMBERS),
+			SecretCode: util2.RandomString(6, util2.NUMBERS),
 		}
 
 		// Step 3: Insert the user into the database
@@ -341,11 +341,11 @@ func (s *Server) AndroidAppLogin(ctx *gin.Context) {
 		}
 
 		// Step 4: Enqueue the task for sending the verification email
-		taskPayload := &worker.SendVerificationEmailPayload{ID: tempUser.ID}
+		taskPayload := &worker2.SendVerificationEmailPayload{ID: tempUser.ID}
 		opts := []asynq.Option{
 			asynq.MaxRetry(10),
 			asynq.ProcessIn(time.Second),
-			asynq.Queue(worker.CriticalQueue),
+			asynq.Queue(worker2.CriticalQueue),
 		}
 		err = s.taskDistributor.SendVerificationEmail(sessCtx, taskPayload, opts...)
 		if err != nil {
@@ -420,7 +420,7 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 			return nil, fmt.Errorf("user not found")
 		}
 
-		totpSecret, err := util.Decrypt(user.TOTPSecret, s.configs.EncryptionKey)
+		totpSecret, err := util2.Decrypt(user.TOTPSecret, s.configs.EncryptionKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encrypt")
 		}
@@ -516,7 +516,7 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 			return nil, err
 		}
 
-		totpKey, err := util.Decrypt(user.TOTPSecret, s.configs.EncryptionKey)
+		totpKey, err := util2.Decrypt(user.TOTPSecret, s.configs.EncryptionKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decrypt key")
 		}

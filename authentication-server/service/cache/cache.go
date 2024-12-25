@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/service/config"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/config"
 	"context"
 	"encoding/json"
 	"github.com/redis/go-redis/v9"

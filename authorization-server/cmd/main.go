@@ -1,12 +1,12 @@
 package main
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/authapi"
-	"Third-Party-Multi-Factor-Authentication-System/service/config"
-	"Third-Party-Multi-Factor-Authentication-System/service/db"
-	"Third-Party-Multi-Factor-Authentication-System/service/email"
-	"Third-Party-Multi-Factor-Authentication-System/service/tokenmanager/token"
-	worker2 "Third-Party-Multi-Factor-Authentication-System/service/worker"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/config"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/db"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/email"
+	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/tokenmanager/token"
+	worker2 "Third-Party-Multi-Factor-Authentication-System/authentication-server/service/worker"
+	"Third-Party-Multi-Factor-Authentication-System/authorization-server"
 	"fmt"
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog"
@@ -36,7 +36,7 @@ func main() {
 	}
 	log.Info().Msg("initialized database")
 
-	server := authapi.NewServer(store, tokenMaker, configs)
+	server := authorization_server.NewServer(store, tokenMaker, configs)
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -10,7 +10,7 @@ RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/
 From alpine:3.19
 WORKDIR /app
 COPY --from=builder /app/main .
-COPY service/config/config.json /app/config/
+COPY authentication-server/service/config/config.json /app/config/
 
 EXPOSE 8080
 CMD ["/app/main"]

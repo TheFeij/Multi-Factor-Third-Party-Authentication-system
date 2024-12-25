@@ -6,6 +6,11 @@
     font-family: Arial, sans-serif;
 }
 
+/* RTL Direction */
+body {
+    direction: rtl;
+}
+
 /* Background */
 body {
     display: flex;
@@ -14,51 +19,60 @@ body {
     min-height: 100vh;
     background: linear-gradient(135deg, #1d1d1d, #444);
     color: #fff;
+    padding: 20px;
 }
 
 /* Container */
 .container {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
+    gap: 20px;
     width: 100%;
-    max-width: 400px;
+    max-width: 600px;
     padding: 20px;
 }
 
-/* Login Card */
-.login-card {
+/* Card */
+.card {
     background: #2a2a2a;
     border-radius: 10px;
-    padding: 30px;
-    width: 100%;
-    text-align: center;
+    padding: 20px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    text-align: right; /* Align text to the right */
 }
 
-.login-card h1 {
-    font-size: 24px;
+.card h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #444;
+    padding-bottom: 5px;
+}
+
+.card p {
     margin-bottom: 10px;
-}
-
-.login-card p {
-    margin-bottom: 20px;
     color: #ccc;
 }
 
-/* OAuth Button */
-.oauth-button {
-    width: 100%;
-    padding: 10px 0;
-    background: #6a5acd;
-    border: none;
-    border-radius: 5px;
+.card strong {
     color: #fff;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background 0.3s;
 }
 
-.oauth-button:hover {
-    background: #5a4ab8;
+.card code {
+    display: block;
+    background: #1d1d1d;
+    color: #6a5acd;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    margin-top: 10px;
+    word-break: break-word;
+    text-align: left; /* Code should remain left-aligned */
+    direction: ltr; /* Ensure numbers and code are not reversed */
+}
+
+.card h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    position: relative;
+    padding-bottom: 12px; /* Creates space below the title */
 }

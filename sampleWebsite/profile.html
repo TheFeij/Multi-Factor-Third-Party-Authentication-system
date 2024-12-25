@@ -1,33 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="fa"> <!-- Set the language to Farsi -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-<div>
-    <h1>User Profile</h1>
+<div class="container">
+    <div class="card">
+        <h2>اطلاعات دریافت شده از سامانه احراز هویت</h2>
+        <p><strong>شناسه یکتا:</strong> {{ .userInfo.id }}</p>
+        <p><strong>نام کاربری:</strong> {{ .userInfo.username }}</p>
+        <p><strong>ایمیل:</strong> {{ .userInfo.email }}</p>
+    </div>
 
-    <!-- User Information -->
-    <section>
-        <h2>Account Information</h2>
-        <p><strong>User ID:</strong> {{ .userInfo.id }}</p>
-        <p><strong>Username:</strong> {{ .userInfo.username }}</p>
-        <p><strong>Email:</strong> {{ .userInfo.email }}</p>
-    </section>
-
-    <!-- Access Token -->
-    <section>
-        <h2>API Access</h2>
-        <p>Your access token (for API use):</p>
+    <div class="card">
+        <h2>دسترسی های سایت</h2>
+        <p>توکن دسترسی ایجاد شده برای سایت:</p>
         <code>{{ .accessToken }}</code>
-    </section>
+    </div>
 </div>
 </body>
-
 </html>
-

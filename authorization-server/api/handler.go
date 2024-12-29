@@ -1,7 +1,7 @@
-package authorization_server
+package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/tokenmanager/token"
+	"authorization-server/tokenmanager/token"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"

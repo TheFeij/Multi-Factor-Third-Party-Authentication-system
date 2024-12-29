@@ -1,7 +1,7 @@
 package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/db"
+	"authentication-server/service/db"
 	"errors"
 	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"

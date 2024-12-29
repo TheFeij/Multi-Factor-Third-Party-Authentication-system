@@ -1,11 +1,9 @@
-package authorization_server
+package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/cache"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/config"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/db"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/tokenmanager/token"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/worker"
+	"authorization-server/config"
+	"authorization-server/db"
+	"authorization-server/tokenmanager/token"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -15,12 +13,10 @@ import (
 )
 
 type Server struct {
-	router          *gin.Engine
-	store           *db.Store
-	tokenMaker      *token.PasetoMaker
-	configs         *config.Config
-	taskDistributor *worker.RedisTaskDistributor
-	cache           *cache.Cache
+	router     *gin.Engine
+	store      *db.Store
+	tokenMaker *token.PasetoMaker
+	configs    *config.Config
 }
 
 func NewServer(store *db.Store, tokenMaker *token.PasetoMaker, configs *config.Config) *Server {

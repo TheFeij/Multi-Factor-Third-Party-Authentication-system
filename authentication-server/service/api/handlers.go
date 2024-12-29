@@ -1,10 +1,10 @@
 package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/db"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/tokenmanager/token"
-	util2 "Third-Party-Multi-Factor-Authentication-System/authentication-server/service/util"
-	worker2 "Third-Party-Multi-Factor-Authentication-System/authentication-server/service/worker"
+	"authentication-server/service/db"
+	"authentication-server/service/tokenmanager/token"
+	util2 "authentication-server/service/util"
+	worker2 "authentication-server/service/worker"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"

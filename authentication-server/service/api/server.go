@@ -1,11 +1,11 @@
 package api
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/cache"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/config"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/db"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/tokenmanager/token"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/worker"
+	"authentication-server/service/cache"
+	"authentication-server/service/config"
+	"authentication-server/service/db"
+	"authentication-server/service/tokenmanager/token"
+	"authentication-server/service/worker"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -50,10 +50,10 @@ func (s *Server) setupRouter() {
 	s.router.Use(cors.New(config))
 
 	// Serve static files
-	s.router.Static("/static", "./authentication-server/front/static")
+	s.router.Static("/static", "./front/static")
 
 	// Set the directory for HTML templates
-	s.router.LoadHTMLGlob("./authentication-server/front/templates/*.html")
+	s.router.LoadHTMLGlob("./front/templates/*.html")
 
 	s.router.GET("/login", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "loginpage.html", nil)

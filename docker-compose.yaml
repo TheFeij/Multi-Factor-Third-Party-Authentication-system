@@ -3,21 +3,39 @@ networks:
     driver: bridge
 
 services:
-#  app:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    ports:
-#      - "8080:8080"
-#    depends_on:
-#      mongo:
-#        condition: service_started
-#      redis:
-#        condition: service_started
-#      mongo-init-replica:
-#        condition: service_completed_successfully
-#    networks:
-#      - mfa_network
+  authentication-server:
+    build:
+      context: ./authentication-server
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_started
+      mongo-init-replica:
+        condition: service_completed_successfully
+    networks:
+      - mfa_network
+
+  authorization-server:
+    build:
+      context: ./authorization-server
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    depends_on:
+      authentication-server:
+        condition: service_started
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_started
+      mongo-init-replica:
+        condition: service_completed_successfully
+    networks:
+      - mfa_network
 
   mongo:
     build:
@@ -39,6 +57,15 @@ services:
       retries: 10
     volumes:
       - mongo_data:/data/db
+    networks:
+      - mfa_network
+
+  mongo-init-replica:
+    image: mongo:8.0
+    depends_on:
+      - mongo
+    entrypoint: >
+      bash -c "sleep 5 && mongosh --host mongo:27017 -u admin -p password --authenticationDatabase admin --eval 'rs.initiate({_id: \"rs0\", members: [{_id: 0, host: \"mongo:27017\"}]})'"
     networks:
       - mfa_network
 

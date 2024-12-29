@@ -1,13 +1,13 @@
 package main
 
 import (
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/api"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/cache"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/config"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/db"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/email"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/tokenmanager/token"
-	"Third-Party-Multi-Factor-Authentication-System/authentication-server/service/worker"
+	"authentication-server/service/api"
+	"authentication-server/service/cache"
+	"authentication-server/service/config"
+	"authentication-server/service/db"
+	"authentication-server/service/email"
+	"authentication-server/service/tokenmanager/token"
+	"authentication-server/service/worker"
 	"fmt"
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog"
@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	configs, err := config.LoadConfig("./authentication-server/service/config", "config.json")
+	configs, err := config.LoadConfig("./config", "config.json")
 	if err != nil {
 		panic(fmt.Sprintf("could not load configs: %v", err.Error()))
 	}

@@ -468,17 +468,11 @@ func (s *Store) RemoveThirdPartyLoginRequest(sessCtx mongo.SessionContext, usern
 	}
 
 	// Perform the delete operation
-	result, err := collection.DeleteMany(sessCtx, filter)
+	_, err := collection.DeleteMany(sessCtx, filter)
 	if err != nil {
 		return err
 	}
 
-	// Check if any documents were deleted
-	if result.DeletedCount == 0 {
-		return fmt.Errorf("no matching request found to delete")
-	}
-
-	fmt.Println("Third party login request removed successfully")
 	return nil
 }
 

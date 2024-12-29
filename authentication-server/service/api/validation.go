@@ -3,7 +3,6 @@ package api
 import (
 	"authentication-server/service/db"
 	"errors"
-	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/mail"
 	"regexp"
@@ -44,7 +43,7 @@ func ValidateOnSignup(store *db.Store, req *SignupRequest) error {
 
 func ValidateOnLogin(store *db.Store, req *LoginRequest) error {
 	if req.Username == "" && req.Email == "" {
-		return errors.New("username or email must be entered")
+		return ErrUsernameOrEmailISRequired
 	}
 
 	if strings.TrimSpace(req.Username) != "" {
@@ -64,7 +63,7 @@ func ValidateOnLogin(store *db.Store, req *LoginRequest) error {
 
 	// Validate the authorization request
 	if req.ClientID == "" || req.RedirectUri == "" {
-		return fmt.Errorf("invalid request")
+		return ErrInvalidRequest
 	}
 
 	return nil
@@ -72,15 +71,21 @@ func ValidateOnLogin(store *db.Store, req *LoginRequest) error {
 
 func ValidateOnAndroidAppLogin(store *db.Store, req *LoginRequest) error {
 	if strings.TrimSpace(req.Username) == "" && strings.TrimSpace(req.Email) == "" {
-		return errors.New("username or email must be entered")
+		return ErrUsernameOrEmailISRequired
 	}
 
-	if strings.TrimSpace(req.Password) == "" {
-		return errors.New("password cannot be empty")
+	if strings.TrimSpace(req.Username) != "" {
+		if err := ValidateUsername(req.Username); err != nil {
+			return err
+		}
 	}
-
-	if len(req.Password) < 8 {
-		return errors.New("password cannot be less than 8 characters")
+	if strings.TrimSpace(req.Email) != "" {
+		if err := ValidateEmail(req.Email); err != nil {
+			return err
+		}
+	}
+	if err := ValidatePassword(req.Password); err != nil {
+		return err
 	}
 
 	return nil

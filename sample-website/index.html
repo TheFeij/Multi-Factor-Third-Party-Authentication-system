@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sample Site - Login</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="container">
+<div class="login-container">
     <div class="login-card">
         <h1>یک سایت دلخواه</h1>
         <br>
         <br>
-        <button class="oauth-button" onclick="redirectToAuth()">ورود با حساب سامانه احراز هویت</button>
+        <button class="login-button" onclick="redirectToAuth()">ورود با حساب سامانه احراز هویت</button>
     </div>
 </div>
 
@@ -20,7 +20,7 @@
     // Redirect user to authentication system
     function redirectToAuth() {
         const clientId = "1234567";
-        const redirectUri = encodeURIComponent("http://localhost:4040/callback");
+        const redirectUri = encodeURIComponent("http://172.17.0.1:4040/callback");
         const authUrl = `http://localhost:8080/login?client_id=${clientId}&redirect_uri=${redirectUri}`;
         window.location.href = authUrl;
     }

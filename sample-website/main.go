@@ -20,8 +20,8 @@ func main() {
 	router.Use(cors.New(config))
 
 	// Serve the profile page (HTML template)
-	router.LoadHTMLGlob("./sample-website/*.html") // Make sure you have an HTML file at "templates/profile.html"
-	router.Static("/static", "./sample-website")
+	router.LoadHTMLGlob("./*.html") // Make sure you have an HTML file at "templates/profile.html"
+	router.Static("/static", ".")
 
 	// Handler for the redirected request
 	router.GET("/callback", callbackHandler)

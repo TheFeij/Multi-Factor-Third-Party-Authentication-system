@@ -20,7 +20,7 @@
     // Redirect user to authentication system
     function redirectToAuth() {
         const clientId = "1234567";
-        const redirectUri = encodeURIComponent("http://127.0.0.1:4040/callback");
+        const redirectUri = encodeURIComponent("http://172.17.0.1:4040/callback");
         const authUrl = `http://localhost:8080/login?client_id=${clientId}&redirect_uri=${redirectUri}`;
         window.location.href = authUrl;
     }

@@ -151,7 +151,10 @@ function showAlternativeMethod(event) {
     socket.onmessage = function(event) {
         const response = JSON.parse(event.data);
 
-        if (response.code) {
+        if (response.redirect_url) {
+            // Redirect to the URL provided by the server
+            window.location.href = response.redirect_url;
+        } else if (response.code) {
             // Display the alternative code received from the server
             document.getElementById('alternative-code').textContent = response.code;
         } else if (response.error) {
@@ -163,7 +166,7 @@ function showAlternativeMethod(event) {
         if (response.approved !== undefined) {
             if (response.approved === 1) {
                 // Success: Code is approved
-                document.getElementById('alternative-code').textContent = 'Code Approved! You can now log in.';
+                document.getElementById('alternative-code').textContent = 'Code Approved! Redirecting...';
             } else if (response.approved === 2) {
                 // Failure: Code is rejected or login failed
                 document.getElementById('alternative-code').textContent = 'Login failed. Please try again.';

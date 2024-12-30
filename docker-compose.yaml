@@ -16,6 +16,11 @@ services:
         condition: service_started
     networks:
       - mfa_network
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
 
   authorization-server:
     build:
@@ -32,6 +37,11 @@ services:
         condition: service_started
     networks:
       - mfa_network
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
 
   mongo:
     build:

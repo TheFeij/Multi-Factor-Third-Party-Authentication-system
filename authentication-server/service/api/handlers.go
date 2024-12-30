@@ -676,22 +676,28 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		return
 	}
 
-	// Generate an authorization code
-	authCode, _, err := s.tokenMaker.CreateToken(&token.Payload{
-		ID:        user.ID,
-		IssuedAt:  time.Now(),
-		ExpiredAt: time.Now().Add(10 * time.Minute),
-	})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate authorization code"})
-		return
-	}
+	if approved == 1 { // Approved
+		authCode, _, err := s.tokenMaker.CreateToken(&token.Payload{
+			ID:        user.ID,
+			IssuedAt:  time.Now(),
+			ExpiredAt: time.Now().Add(10 * time.Minute),
+		})
+		if err != nil {
+			conn.WriteJSON(errorResponse(fmt.Errorf("failed to generate authorization code")))
+			return
+		}
 
-	// Redirect to the callback URI with the authorization code
-	redirectURL := fmt.Sprintf("%s?token=%s", req.RedirectUri, authCode)
-	ctx.JSON(http.StatusOK, gin.H{
-		"redirect_url": redirectURL,
-	})
+		redirectURL := fmt.Sprintf("%s?token=%s", req.RedirectUri, authCode)
+		conn.WriteJSON(map[string]any{
+			"approved":     approved,
+			"redirect_url": redirectURL,
+		})
+	} else if approved == 2 { // Rejected
+		conn.WriteJSON(map[string]any{
+			"approved": approved,
+			"error":    "Login rejected.",
+		})
+	}
 }
 
 func (s *Server) GetLoginRequests(ctx *gin.Context) {

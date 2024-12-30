@@ -62,16 +62,16 @@ func (s *Server) setupRouter() {
 	s.router.GET("/", func(context *gin.Context) {
 		context.JSON(http.StatusOK, gin.H{"message": "Welcome"})
 	})
-	s.router.POST("api/signup", s.Signup)
-	s.router.POST("api/verify-email", s.VerifyEmail)
+	s.router.POST("api/signup", NewRateLimiter(30*time.Second, 1), s.Signup)
+	s.router.POST("api/verify-email", NewRateLimiter(30*time.Second, 3), s.VerifyEmail)
 	s.router.POST("api/login-approves", s.GetLoginRequests)
-	s.router.POST("api/android-login", s.AndroidAppLogin)
-	s.router.POST("api/verify-android-login", s.VerifyAndroidAppLogin)
-	s.router.POST("api/login", s.Login)
-	s.router.POST("api/totp-approve", s.VerifyLoginWithTOTP)
-	s.router.GET("api/notif-approve", s.VerifyLoginWithAndroidAppNotification)
-	s.router.POST("api/approve-login", s.ApproveLoginRequests)
-	s.router.POST("api/refresh-token", s.RefreshToken)
+	s.router.POST("api/android-login", NewRateLimiter(15*time.Minute, 3), s.AndroidAppLogin)
+	s.router.POST("api/verify-android-login", NewRateLimiter(15*time.Minute, 5), s.VerifyAndroidAppLogin)
+	s.router.POST("api/login", NewRateLimiter(30*time.Second, 1), s.Login)
+	s.router.POST("api/totp-approve", NewRateLimiter(15*time.Minute, 5), s.VerifyLoginWithTOTP)
+	s.router.GET("api/notif-approve", NewRateLimiter(15*time.Minute, 2), s.VerifyLoginWithAndroidAppNotification)
+	s.router.POST("api/approve-login", NewRateLimiter(15*time.Minute, 5), s.ApproveLoginRequests)
+	s.router.POST("api/refresh-token", NewRateLimiter(15*time.Minute, 2), s.RefreshToken)
 
 	//// Handle requests that don't match any defined routes
 	//s.router.NoRoute(func(c *gin.Context) {

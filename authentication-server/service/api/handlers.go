@@ -604,6 +604,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	user, err := s.store.GetUser(payload.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(errors.New("user not found")))
+		return
 	}
 
 	thirdPartyRequest, err := s.store.GetThirdPartyLoginRequests(user.Username, clientIDInt)

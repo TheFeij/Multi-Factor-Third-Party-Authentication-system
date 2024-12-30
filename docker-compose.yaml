@@ -14,6 +14,9 @@ services:
         condition: service_started
       redis:
         condition: service_started
+      mongo-init-replica:
+        condition: service_completed_successfully
+
     networks:
       - mfa_network
     deploy:
@@ -35,6 +38,8 @@ services:
         condition: service_started
       redis:
         condition: service_started
+      mongo-init-replica:
+        condition: service_completed_successfully
     networks:
       - mfa_network
     deploy:

@@ -379,7 +379,7 @@ func (s *Server) AndroidAppLogin(ctx *gin.Context) {
 func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 	var req *VerifyAndroidLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
 	}
 
 	now := time.Now()
@@ -387,11 +387,11 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 	// decode the login token
 	payload, err := s.tokenMaker.VerifyToken(req.LoginToken)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrInvalidRequest))
 		return
 	}
 	if payload.ExpiredAt.Before(now) {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("token expired")))
+		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrExpiredLoginToken))
 	}
 
 	var user *db.User
@@ -404,25 +404,28 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 			return nil, err
 		}
 		if tempUser.ExpiredAt.Before(now) {
-			return nil, fmt.Errorf("token expired")
+			return nil, ErrTokenExpired
 		}
 
 		// check the code
 		if tempUser.SecretCode != req.VerificationCode {
-			return nil, fmt.Errorf("wrong code")
+			return nil, ErrInvalidTOTP
 		}
 
 		user, err = s.store.GetUserByUsername(tempUser.Username)
+		if err != nil {
+			return nil, ErrUsernameEmailNotFound
+		}
 
 		// if correct delete the temp user and insert user
 		err = s.store.DeleteTempUserWithSession(sessCtx, tempUser.ID)
 		if err != nil {
-			return nil, fmt.Errorf("user not found")
+			return nil, ErrUserNotFound
 		}
 
 		totpSecret, err := util2.Decrypt(user.TOTPSecret, s.configs.EncryptionKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to encrypt")
+			return nil, ErrInternalServer
 		}
 
 		// creating tokens
@@ -433,7 +436,7 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 				ExpiredAt: now.Add(30 * 24 * time.Hour),
 			})
 		if err != nil {
-			return nil, fmt.Errorf("failed to create refresh token")
+			return nil, ErrInternalServer
 		}
 
 		accessToken, accessTokenPayload, err := s.tokenMaker.CreateToken(
@@ -443,7 +446,7 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 				ExpiredAt: now.Add(15 * time.Minute),
 			})
 		if err != nil {
-			return nil, fmt.Errorf("failed to create refresh token")
+			return nil, ErrInternalServer
 		}
 
 		session := &db.Session{
@@ -459,7 +462,7 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 		}
 		err = s.store.InsertSession(session)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create session")
+			return nil, ErrInternalServer
 		}
 
 		resp = &AuthVerificationResponse{
@@ -490,12 +493,12 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 	var req *VerifyLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
 	}
 
 	clientIDInt, err := strconv.ParseInt(req.ClientID, 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
 		return
 	}
 
@@ -504,38 +507,38 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 	// decode the signup token
 	payload, err := s.tokenMaker.VerifyToken(req.LoginToken)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrInvalidRequest))
 	}
 	if payload.ExpiredAt.Before(now) {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("token expired")))
+		ctx.JSON(http.StatusUnauthorized, ErrTokenExpired)
 	}
 
 	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
 		user, err := s.store.GetUserWithSession(sessCtx, payload.ID)
 		if err != nil {
-			return nil, err
+			return nil, ErrUserNotFound
 		}
 
 		totpKey, err := util2.Decrypt(user.TOTPSecret, s.configs.EncryptionKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decrypt key")
+			return nil, ErrInternalServer
 		}
 
 		isValid := totp.Validate(req.TOTP, totpKey)
 		if !isValid {
-			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid TOTP code")))
+			return nil, ErrInvalidTOTP
 		}
 
 		thirdPartyRequest, err := s.store.GetThirdPartyLoginRequests(user.Username, clientIDInt)
 		if err != nil {
-			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid clientID")))
+			return nil, ErrInvalidRequest
 		}
 		if thirdPartyRequest.ExpiresAt.Before(time.Now()) {
-			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("request expired")))
+			return nil, ErrExpiredLoginToken
 		}
 		req.RedirectUri = thirdPartyRequest.RedirectUrl
 
-		return nil, err
+		return nil, nil
 	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -548,7 +551,7 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 		ExpiredAt: time.Now().Add(10 * time.Minute),
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate authorization code"})
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
 		return
 	}
 

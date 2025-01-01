@@ -4,6 +4,7 @@ import "fmt"
 
 var (
 	ErrUsernameAlreadyExists = fmt.Errorf("نام کاربری از قبل وجود دارد")
+	ErrUserNotFound          = fmt.Errorf("کاربر یافت نشد")
 	ErrEmailAlreadyExists    = fmt.Errorf("ایمیل از قبل وجود دارد")
 )
 
@@ -43,4 +44,9 @@ var (
 var (
 	ErrUsernameOrEmailISRequired = fmt.Errorf("لطفا نام کاربری یا ایمیل را وارد کنید")
 	ErrInvalidRequest            = fmt.Errorf("درخواست نامعتبر است")
+)
+
+var (
+	ErrTokenExpired = fmt.Errorf("نشست منقضی شده، لطفا دوباره وارد حساب خود شوید")
+	ErrInvalidTOTP  = fmt.Errorf("کد اشتباه است")
 )

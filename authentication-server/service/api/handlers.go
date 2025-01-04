@@ -259,7 +259,7 @@ func (s *Server) Login(ctx *gin.Context) {
 
 	var loginToken string
 	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		err = s.store.RemoveThirdPartyLoginRequest(sessCtx, req.Username, req.ClientID)
+		err = s.store.RemoveThirdPartyLoginRequest(sessCtx, user.Username, clientIDInt)
 		if err != nil {
 			return nil, ErrInternalServer
 		}
@@ -573,6 +573,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	// Upgrade the HTTP connection to a WebSocket
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
+		log.Error().Err(err).Msg(err.Error())
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -581,8 +582,10 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	// Read the initial login request from the WebSocket
 	var req VerifyLoginRequest
 	if err := conn.ReadJSON(&req); err != nil {
+		log.Error().Err(err).Msg(err.Error())
 		err := conn.WriteMessage(websocket.TextMessage, []byte(ErrInvalidRequest.Error()))
 		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
 			return
 		}
 		return
@@ -591,14 +594,17 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	clientIDInt, err := strconv.ParseInt(req.ClientID, 10, 64)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
+		log.Error().Err(err).Msg(err.Error())
 		return
 	}
 
 	// Decode the login token
 	payload, err := s.tokenMaker.VerifyToken(req.LoginToken)
 	if err != nil {
+		log.Error().Err(err).Msg(err.Error())
 		err := conn.WriteJSON(ErrInvalidRequest)
 		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
 			return
 		}
 		return
@@ -606,24 +612,30 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	if payload.ExpiredAt.Before(time.Now()) {
 		err := conn.WriteJSON(ErrExpiredLoginToken)
 		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
 			return
 		}
+		log.Error().Msg("expired")
 		return
 	}
 
 	user, err := s.store.GetUser(payload.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrUserNotFound))
+		log.Error().Err(err).Msg(err.Error())
+
 		return
 	}
 
 	thirdPartyRequest, err := s.store.GetThirdPartyLoginRequests(user.Username, clientIDInt)
 	if err != nil {
+		log.Error().Err(err).Msg(err.Error())
 		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrExpiredSignupToken))
 		return
 	}
 	if thirdPartyRequest.ExpiresAt.Before(time.Now()) {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrExpiredSignupToken))
+		log.Error().Msg("expired2")
 		return
 	}
 	req.RedirectUri = thirdPartyRequest.RedirectUrl
@@ -644,8 +656,10 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		"ip":          ip,
 	}, time.Minute*2)
 	if err != nil {
+		log.Error().Err(err).Msg(err.Error())
 		err := conn.WriteJSON(errorResponse(ErrInternalServer))
 		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
 			return
 		}
 		return
@@ -656,6 +670,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		"message": "احراز هویت با موفقیت انجام شد",
 		"code":    code,
 	}); err != nil {
+		log.Error().Err(err).Msg(err.Error())
 		return
 	}
 
@@ -666,6 +681,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		time.Sleep(4 * time.Second)
 		data, err := s.cache.GetData(user.Username)
 		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
 			time.Sleep(4 * time.Second)
 			continue
 		}
@@ -675,6 +691,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		if value == "1" || value == "2" {
 			approved, err = strconv.ParseInt(value, 10, 64)
 			if err != nil {
+				log.Error().Err(err).Msg(err.Error())
 				return
 			}
 			break
@@ -684,6 +701,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 	if err := conn.WriteJSON(map[string]any{
 		"approved": approved,
 	}); err != nil {
+		log.Error().Err(err).Msg(err.Error())
 		return
 	}
 
@@ -694,6 +712,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 			ExpiredAt: time.Now().Add(10 * time.Minute),
 		})
 		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
 			conn.WriteJSON(errorResponse(ErrInternalServer))
 			return
 		}

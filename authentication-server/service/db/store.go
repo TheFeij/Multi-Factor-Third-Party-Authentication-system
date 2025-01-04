@@ -457,14 +457,14 @@ func (s *Store) InsertThirdPartyLoginRequests(sessCtx mongo.SessionContext, req 
 	return nil
 }
 
-func (s *Store) RemoveThirdPartyLoginRequest(sessCtx mongo.SessionContext, username, clientID string) error {
+func (s *Store) RemoveThirdPartyLoginRequest(sessCtx mongo.SessionContext, username string, clientID int64) error {
 	// Get the third_party_login_requests collection from the database
 	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
 
 	// Create the filter to match the username and clientID
-	filter := bson.M{
-		"username":  username,
-		"client_id": clientID,
+	filter := bson.D{
+		{"username", username},
+		{"client_id", clientID},
 	}
 
 	// Perform the delete operation

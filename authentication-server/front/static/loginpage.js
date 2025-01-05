@@ -95,17 +95,17 @@ function validateVerificationCode(event) {
             .then(response => response.json())
             .then(data => {
                 if (data) {
-                    document.getElementById("verify-response-message").innerText = "Code verified successfully!";
+                    document.getElementById("verify-response-message").innerText = "ورود تایید شد! درحال بازگشت...";
                     window.location.href = data.redirect_url;
                 } else {
-                    document.getElementById("verify-response-message").innerText = data.error || "Invalid code.";
+                    document.getElementById("verify-response-message").innerText = data.error || "کد نامعتبر است";
                 }
             })
             .catch(err => {
-                document.getElementById("verify-response-message").innerText = "Error: " + err.message;
+                document.getElementById("verify-response-message").innerText = err.message;
             });
     } else {
-        document.getElementById("verify-response-message").innerText = "Please enter all 6 digits.";
+        document.getElementById("verify-response-message").innerText = "لطفا تمام ۶ رقم را وارد کنید";
     }
 }
 
@@ -159,24 +159,25 @@ function showAlternativeMethod(event) {
             document.getElementById('alternative-code').textContent = response.code;
         } else if (response.error) {
             // Display any error message if there's an issue
-            document.getElementById('alternative-code').textContent = 'Error: ' + response.error;
+            document.getElementById('alternative-code').textContent = response.error;
         }
 
         // Check for approval status from the server
         if (response.approved !== undefined) {
             if (response.approved === 1) {
                 // Success: Code is approved
-                document.getElementById('alternative-code').textContent = 'Code Approved! Redirecting...';
+                document.getElementById('alternative-code').textContent = 'ورود تایید شد! در حال بازگشت...';
             } else if (response.approved === 2) {
                 // Failure: Code is rejected or login failed
-                document.getElementById('alternative-code').textContent = 'Login failed. Please try again.';
+                document.getElementById('alternative-code').textContent = 'ورود تایید نشد. لطفا بعدا دوباره تلاش کنید';
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('alternative-method').style.display = 'block';
             }
         }
     };
 
     socket.onerror = function(event) {
-        console.error('WebSocket error:', event);
-        document.getElementById('alternative-code').textContent = 'WebSocket error occurred.';
+        document.getElementById('alternative-code').textContent = 'خطای برقراری ارتباط با سامانه';
     };
 
     socket.onclose = function() {

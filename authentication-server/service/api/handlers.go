@@ -29,11 +29,13 @@ func (s *Server) Signup(ctx *gin.Context) {
 
 	// Bind JSON input to request struct
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("unmarshalling request failed")
 		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
 		return
 	}
 
 	if err := ValidateOnSignup(s.store, req); err != nil {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("input validations failed")
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
@@ -44,6 +46,7 @@ func (s *Server) Signup(ctx *gin.Context) {
 		// Step 1: Hash the password
 		hashedPassword, err := util2.HashPassword(req.Password)
 		if err != nil {
+			log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("hashing password failed")
 			return nil, ErrInternalServer
 		}
 
@@ -56,8 +59,10 @@ func (s *Server) Signup(ctx *gin.Context) {
 		// Step 3: Insert the user into the database
 		err = s.store.InsertTempUserWithSession(sessCtx, tempUser) // Use the session-aware insert method
 		if err != nil {
+			log.Error().Err(err)
 			return nil, ErrInternalServer
 		}
+		log.Info().Str("req", fmt.Sprintf("%+v", req)).Str("temp-user", fmt.Sprintf("%v", tempUser)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("temp user inserted")
 
 		// Step 4: Enqueue the task for sending the verification email
 		taskPayload := &worker2.SendVerificationEmailPayload{ID: tempUser.ID}
@@ -68,12 +73,16 @@ func (s *Server) Signup(ctx *gin.Context) {
 		}
 		err = s.taskDistributor.SendVerificationEmail(sessCtx, taskPayload, opts...)
 		if err != nil {
+			log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("hashing password failed")
 			return nil, ErrInternalServer
 		}
+
+		log.Info().Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("signup verification email sent")
 
 		return nil, nil
 	})
 	if err != nil {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("transaction failed")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -87,9 +96,11 @@ func (s *Server) Signup(ctx *gin.Context) {
 		},
 	)
 	if err != nil {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("signup token creation failed")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
 		return
 	}
+	log.Info().Str("req", fmt.Sprintf("%+v", req)).Str("token", signupToken).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("signup token created")
 
 	ctx.JSON(http.StatusOK, &SignupResponse{SignupToken: signupToken})
 }
@@ -97,17 +108,20 @@ func (s *Server) Signup(ctx *gin.Context) {
 func (s *Server) VerifyEmail(ctx *gin.Context) {
 	var req *VerifyEmailRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("unmarshalling request failed")
 		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
 		return
 	}
 
-	// decode the signup token
+	// Decode the signup token
 	payload, err := s.tokenMaker.VerifyToken(req.SignupToken)
 	if err != nil {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("signup token verification failed")
 		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrInvalidRequest))
 		return
 	}
 	if payload.ExpiredAt.Before(time.Now()) {
+		log.Error().Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("signup token expired")
 		ctx.JSON(http.StatusUnauthorized, ErrExpiredSignupToken)
 		return
 	}
@@ -116,54 +130,62 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 	var resp *AuthVerificationResponse
 
 	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		// check if temp user is not expired
+		// Check if temp user is not expired
 		tempUser, err := s.store.GetTempUserWithSession(sessCtx, payload.ID)
 		if err != nil {
+			log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to fetch temp user")
 			return nil, err
 		}
+
 		if tempUser.ExpiredAt.Before(time.Now()) {
+			log.Error().Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("temp user expired")
 			return nil, ErrExpiredSignupToken
 		}
 
-		// check the code
+		// Check the code
 		if tempUser.SecretCode != req.VerificationCode {
+			log.Error().Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("invalid verification code")
 			return nil, ErrInvalidTOTP
 		}
 
-		// if correct delete the temp user and insert user
+		// If correct, delete the temp user and insert user
 		err = s.store.DeleteTempUserWithSession(sessCtx, tempUser.ID)
 		if err != nil {
+			log.Error().Str("req", fmt.Sprintf("%+v", req)).Err(err).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to delete temp user")
 			return nil, ErrInternalServer
 		}
 
-		// create key for TOTP generation
+		// Create key for TOTP generation
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      "MFA",
 			AccountName: tempUser.Username,
 		})
 		if err != nil {
-			log.Error().Msg(fmt.Sprintf("Failed to generate TOTP key: %v", err))
+			log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to generate TOTP key")
 			return nil, ErrInternalServer
 		}
 
 		cipherKey, err := util2.Encrypt(key.Secret(), s.configs.EncryptionKey)
 		if err != nil {
+			log.Error().Err(err).Str("secret", key.Secret()).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to encrypt TOTP secret")
 			return nil, ErrInternalServer
 		}
 
-		// create private key to generate TOTPs send to the user with tokens
+		// Create private key to generate TOTPs and send to the user with tokens
 		user = &db.User{
 			Username:   tempUser.Username,
 			Email:      tempUser.Email,
 			Password:   tempUser.Password,
 			TOTPSecret: cipherKey,
 		}
+
 		err = s.store.InsertUserWithSession(sessCtx, user)
 		if err != nil {
+			log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("user", fmt.Sprintf("%+v", user)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to insert user")
 			return nil, ErrInternalServer
 		}
 
-		// creating tokens
+		// Create tokens
 		refreshToken, refreshTokenPayload, err := s.tokenMaker.CreateToken(
 			&token.Payload{
 				Username:  user.Username,
@@ -171,6 +193,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 				ExpiredAt: time.Now().Add(30 * 24 * time.Hour),
 			})
 		if err != nil {
+			log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to create refresh token")
 			return nil, ErrInternalServer
 		}
 
@@ -181,6 +204,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 				ExpiredAt: time.Now().Add(15 * time.Minute),
 			})
 		if err != nil {
+			log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to create access token")
 			return nil, ErrInternalServer
 		}
 
@@ -197,6 +221,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 		}
 		err = s.store.InsertSession(session)
 		if err != nil {
+			log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("session", fmt.Sprintf("%+v", session)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to insert session")
 			return nil, ErrInternalServer
 		}
 
@@ -219,6 +244,7 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 		return nil, nil
 	})
 	if err != nil {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("transaction failed")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -230,17 +256,20 @@ func (s *Server) Login(ctx *gin.Context) {
 	var req *LoginRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to unmarshal request")
 		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
 		return
 	}
 
 	if err := ValidateOnLogin(s.store, req); err != nil {
+		log.Error().Err(err).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("validation failed")
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
 	clientIDInt, err := strconv.ParseInt(req.ClientID, 10, 64)
 	if err != nil {
+		log.Error().Err(err).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to Parse client id")
 		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
 		return
 	}
@@ -253,7 +282,7 @@ func (s *Server) Login(ctx *gin.Context) {
 		user, err = s.store.GetUserByEmailAndPassword(req.Email, req.Password)
 	}
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, ErrInvalidCredentials)
+		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrInvalidCredentials))
 		return
 	}
 
@@ -496,12 +525,14 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 	var req *VerifyLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("unmarshalling request failed")
 		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
 		return
 	}
 
 	clientIDInt, err := strconv.ParseInt(req.ClientID, 10, 64)
 	if err != nil {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to parse client id")
 		ctx.JSON(http.StatusBadRequest, errorResponse(ErrInvalidRequest))
 		return
 	}
@@ -511,10 +542,12 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 	// decode the signup token
 	payload, err := s.tokenMaker.VerifyToken(req.LoginToken)
 	if err != nil {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to decode token")
 		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrInvalidRequest))
 		return
 	}
 	if payload.ExpiredAt.Before(now) {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("token expired")
 		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrTokenExpired))
 		return
 	}
@@ -522,24 +555,29 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
 		user, err := s.store.GetUserWithSession(sessCtx, payload.ID)
 		if err != nil {
+			log.Error().Err(err).Str("payload", fmt.Sprintf("%+v", payload)).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to get user")
 			return nil, ErrUserNotFound
 		}
 
 		totpKey, err := util2.Decrypt(user.TOTPSecret, s.configs.EncryptionKey)
 		if err != nil {
+			log.Error().Err(err).Str("user", fmt.Sprintf("%+v", user)).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to decrypt totp key")
 			return nil, ErrInternalServer
 		}
 
 		isValid := totp.Validate(req.TOTP, totpKey)
 		if !isValid {
+			log.Error().Err(err).Str("totp-key", fmt.Sprintf("%+v", totpKey)).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("totp ket invalid")
 			return nil, ErrInvalidTOTP
 		}
 
 		thirdPartyRequest, err := s.store.GetThirdPartyLoginRequests(user.Username, clientIDInt)
 		if err != nil {
+			log.Error().Err(err).Str("client-id", fmt.Sprintf("%+v", clientIDInt)).Str("user", fmt.Sprintf("%+v", user)).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to get third party request")
 			return nil, ErrInvalidRequest
 		}
 		if thirdPartyRequest.ExpiresAt.Before(time.Now()) {
+			log.Error().Err(err).Str("third-party-req", fmt.Sprintf("%+v", thirdPartyRequest)).Str("user", fmt.Sprintf("%+v", user)).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("third party request expired")
 			return nil, ErrExpiredLoginToken
 		}
 		req.RedirectUri = thirdPartyRequest.RedirectUrl
@@ -547,6 +585,7 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 		return nil, nil
 	})
 	if err != nil {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("transaction failed")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -558,9 +597,12 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 		ExpiredAt: time.Now().Add(10 * time.Minute),
 	})
 	if err != nil {
+		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to create auth token")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
 		return
 	}
+
+	log.Info().Str("req", fmt.Sprintf("%+v", req)).Str("auth-token", fmt.Sprintf("%+v", authCode)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("auth token created")
 
 	// Redirect to the callback URI with the authorization code
 	redirectURL := fmt.Sprintf("%s?token=%s", req.RedirectUri, authCode)

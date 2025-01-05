@@ -128,11 +128,11 @@
         const themeLink = document.getElementById('theme-style');
         const themeSwitcher = document.getElementById('theme-switcher');
 
-        if (themeLink.getAttribute('href').includes('light-theme.css')) {
-            themeLink.setAttribute('href', 'dark-theme.css');
+        if (themeLink.getAttribute('href').includes('static/light-theme.css')) {
+            themeLink.setAttribute('href', 'static/dark-theme.css');
             themeSwitcher.textContent = '☀️';
         } else {
-            themeLink.setAttribute('href', 'light-theme.css');
+            themeLink.setAttribute('href', 'static/light-theme.css');
             themeSwitcher.textContent = '🌙';
         }
     };

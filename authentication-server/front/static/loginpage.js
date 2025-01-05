@@ -42,7 +42,31 @@ function validateLoginForm(event) {
                 response_type: responseType,
             }),
         })
-            .then(response => response.json())
+            .then(response => {
+                if (response.status === 429) {
+                    const errorObject = {
+                        message: "درخواست‌های بیش از حد مجاز، لطفا پس از چند دقیقه دوباره امتحان کنید",
+                        status: response.status,
+                    };
+
+                    return Promise.reject(errorObject);
+                }
+                if (response.status !== 200) {
+                    // If status is not 200, handle the error
+                    return response.json().then(data => {
+                        const errorMessage = data.message || "خطای ناشناخته، لطفا بعدا دوباره امتحان کنید";
+
+                        const errorObject = {
+                            message: errorMessage,
+                            status: response.status,
+                        };
+
+                        // Reject with the error object
+                        return Promise.reject(errorObject);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.login_token) {
                     // Store the LoginToken
@@ -53,11 +77,11 @@ function validateLoginForm(event) {
                     document.getElementById("verify-form").style.display = "block";
                 } else {
                     // If there's an error in the response, display the error message
-                    document.getElementById("response-message").innerText = data.error || "Invalid credentials.";
+                    document.getElementById("response-message").innerText = data.error || "اطلاعات وارد شده صحیح نیست";
                 }
             })
             .catch(err => {
-                document.getElementById("response-message").innerText = "Error: " + err.message;
+                document.getElementById("response-message").innerText = err.message;
             });
     }
 }
@@ -92,7 +116,31 @@ function validateVerificationCode(event) {
                 redirect_uri: redirectUri,
                 response_type: responseType}),
         })
-            .then(response => response.json())
+            .then(response => {
+                if (response.status === 429) {
+                    const errorObject = {
+                        message: "درخواست‌های بیش از حد مجاز، لطفا پس از چند دقیقه دوباره امتحان کنید",
+                        status: response.status,
+                    };
+
+                    return Promise.reject(errorObject);
+                }
+                if (response.status !== 200) {
+                    // If status is not 200, handle the error
+                    return response.json().then(data => {
+                        const errorMessage = data.message || "خطای ناشناخته، لطفا بعدا دوباره امتحان کنید";
+
+                        const errorObject = {
+                            message: errorMessage,
+                            status: response.status,
+                        };
+
+                        // Reject with the error object
+                        return Promise.reject(errorObject);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data) {
                     document.getElementById("verify-response-message").innerText = "ورود تایید شد! درحال بازگشت...";

@@ -303,3 +303,38 @@ label {
     padding: 10px;
     border-radius: 5px; /* Optional: Rounded corners */
 }
+
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Vazir', 'Tahoma', sans-serif;
+}
+
+/* Theme Toggle Button */
+#theme-switcher {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    border: none;
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background-color 0.3s, color 0.3s, transform 0.2s;
+    z-index: 1000;
+    font-weight: bold;
+}
+
+/* Button Styling for Dark Theme */
+#theme-switcher {
+    background: #f9f9f9; /* Light button */
+    color: #333;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#theme-switcher:hover {
+    background: #eaeaea; /* Slightly darker light */
+    transform: scale(1.1);
+}

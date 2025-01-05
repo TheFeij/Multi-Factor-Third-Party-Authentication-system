@@ -4,20 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Page</title>
-    <link rel="stylesheet" href="/static/loginpage.css">
+    <link id="theme-style" rel="stylesheet" href="static/dark-theme.css"> <!-- Default theme -->
     <script src="https://unpkg.com/htmx.org"></script>
-    <script src="/static/loginpage.js" defer></script>
-</head>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login and Verify</title>
-    <link rel="stylesheet" href="styles.css">
+    <script src="static/loginpage.js" defer></script>
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Vazir', 'Tahoma', sans-serif;
+        }
+
+        /* Background for Body */
+        body {
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.light-theme {
+            background-color: #f9f9f9;
+            color: #333;
+        }
+
+        body.dark-theme {
+            background-color: #1d1d1d;
+            color: #fff;
+        }
+
+        /* Theme Toggle Button */
+        #theme-switcher {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            border: none;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background-color 0.3s, color 0.3s, transform 0.2s;
+            z-index: 1000;
+            font-weight: bold;
+        }
+
+        /* Button Styling for Light Theme */
+        body.light-theme #theme-switcher {
+            background: #333; /* Dark button */
+            color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        body.light-theme #theme-switcher:hover {
+            background: #444; /* Slightly lighter dark */
+            transform: scale(1.1);
+        }
+
+        /* Button Styling for Dark Theme */
+        body.dark-theme #theme-switcher {
+            background: #f9f9f9; /* Light button */
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark-theme #theme-switcher:hover {
+            background: #eaeaea; /* Slightly darker light */
+            transform: scale(1.1);
+        }
+    </style>
 </head>
 <body>
 <div id="app" class="container">
+    <!-- Theme Switch Button -->
+    <button id="theme-switcher" onclick="toggleTheme()">☀️</button>
+
     <!-- Login Form -->
     <form id="login-form" class="card" onsubmit="validateLoginForm(event)">
         <h1 class="pad1">ورود به حساب کاربری</h1>
@@ -64,6 +122,22 @@
 </div>
 
 </body>
+
+<script>
+    const toggleTheme = () => {
+        const themeLink = document.getElementById('theme-style');
+        const themeSwitcher = document.getElementById('theme-switcher');
+
+        if (themeLink.getAttribute('href').includes('light-theme.css')) {
+            themeLink.setAttribute('href', 'dark-theme.css');
+            themeSwitcher.textContent = '☀️';
+        } else {
+            themeLink.setAttribute('href', 'light-theme.css');
+            themeSwitcher.textContent = '🌙';
+        }
+    };
+</script>
+
 </html>
 
 </html>

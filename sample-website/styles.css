@@ -17,8 +17,8 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #1d1d1d, #444);
-    color: #fff;
+    background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+    color: #333;
     padding: 20px;
 }
 
@@ -34,33 +34,33 @@ body {
 
 /* Card */
 .card {
-    background: #2a2a2a;
+    background: #fff;
     border-radius: 10px;
     padding: 20px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
     text-align: right; /* Align text to the right */
 }
 
 .card h2 {
     font-size: 20px;
     margin-bottom: 15px;
-    border-bottom: 2px solid #444;
+    border-bottom: 2px solid #ddd;
     padding-bottom: 5px;
 }
 
 .card p {
     margin-bottom: 10px;
-    color: #ccc;
+    color: #555;
 }
 
 .card strong {
-    color: #fff;
+    color: #000;
 }
 
 .card code {
     display: block;
-    background: #1d1d1d;
-    color: #6a5acd;
+    background: #f9f9f9;
+    color: #d6336c;
     padding: 10px;
     border-radius: 5px;
     font-size: 14px;
@@ -85,10 +85,10 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: #2a2a2a;
+    background: #fff;
     border-radius: 10px;
     padding: 20px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
     gap: 20px;
     width: 100%;
     max-width: 400px;
@@ -97,7 +97,7 @@ body {
 
 /* Login Page Button */
 .login-button {
-    background: #6a5acd;
+    background: #007bff;
     color: #fff;
     border: none;
     padding: 10px 15px;
@@ -108,7 +108,7 @@ body {
 }
 
 .login-button:hover {
-    background: #6a5acd;
+    background: #0056b3;
     transform: translateY(-2px);
 }
 

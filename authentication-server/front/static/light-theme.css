@@ -1,0 +1,340 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Vazir', 'Tahoma', sans-serif; /* Replace 'Vazir' with your preferred Farsi font */
+}
+
+/* Background */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f9f9f9, #e9e9e9);
+    color: #333;
+}
+
+/* Login Container */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+/* Login Card */
+.login-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 30px;
+    width: 100%;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.login-card h1 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #333;
+}
+
+/* Input Group */
+.input-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: #f9f9f9;
+    color: #333;
+    font-size: 16px;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.8);
+}
+
+.violet {
+    color: #007bff;
+}
+
+/* Login Button */
+.login-button {
+    width: 100%;
+    padding: 10px 0;
+    background: #007bff;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.login-button:hover {
+    background: #0056b3;
+}
+
+/* Response Message */
+.response-message {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #e63946;
+}
+
+/* Container */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+    padding: 20px;
+}
+
+/* Card */
+.card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 30px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.card h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* Form Group */
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.pad1 {
+    padding-bottom: 15px;
+}
+
+.pad2 {
+    padding-bottom: 30px;
+}
+
+.rtl {
+    direction: rtl;
+    text-align: right;
+}
+
+.input {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: #f9f9f9;
+    color: #333;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.8);
+}
+
+/* Buttons */
+.button {
+    width: 100%;
+    padding: 10px 0;
+    font-size: 16px;
+    color: #fff;
+    background: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.button:hover {
+    background: #0056b3;
+}
+
+/* Code Input Group */
+.code-input-group {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+}
+
+.code-input {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: #f9f9f9;
+    color: #333;
+}
+
+.code-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.8);
+}
+
+/* Response Message */
+.response-message {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #e63946;
+}
+
+.response-message.success {
+    color: #28a745;
+}
+
+/* Alternative Method Section */
+#alternative-method {
+    display: none;
+    padding: 30px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    margin-top: 20px;
+}
+
+#alternative-method h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+#alternative-method p {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+label {
+    padding-bottom: 3px;
+}
+
+#alternative-method .button {
+    width: 100%;
+    padding: 10px 0;
+    font-size: 16px;
+    color: #fff;
+    background: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#alternative-method .button:hover {
+    background: #0056b3;
+}
+
+#try-another-way, #go-to-totp {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+#go-to-totp {
+    padding-top: 10px;
+}
+
+#try-another-way:hover, #go-to-totp:hover {
+    color: #0056b3;
+}
+
+/* Link Styled as a Button */
+.link-button {
+    font-size: 16px;
+    color: #007bff;
+    text-decoration: none; /* Removes the default underline */
+    text-align: center; /* Centers the text inside the link */
+    transition: background 0.3s;
+}
+
+/* Ensure text inside the link is aligned correctly for RTL */
+.link-button {
+    direction: rtl;
+    text-align: center; /* Adjust as needed */
+}
+
+#alternative-code {
+    font-size: 40px; /* Adjust the size as needed */
+    font-weight: bold; /* Optional: Make the font bold */
+    text-align: center; /* Center the text */
+    color: #333; /* Optional: Set the text color */
+    padding: 10px;
+    border-radius: 5px; /* Optional: Rounded corners */
+}
+
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Vazir', 'Tahoma', sans-serif;
+}
+
+/* Theme Toggle Button */
+#theme-switcher {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    border: none;
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background-color 0.3s, color 0.3s, transform 0.2s;
+    z-index: 1000;
+    font-weight: bold;
+}
+
+/* Button Styling for Light Theme */
+#theme-switcher {
+    background: #333; /* Dark button */
+    color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+#theme-switcher:hover {
+    background: #444; /* Slightly lighter dark */
+    transform: scale(1.1);
+}

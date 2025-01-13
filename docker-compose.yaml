@@ -25,6 +25,28 @@ services:
           memory: 512m
           cpus: "0.5"
 
+  admin-server:
+    build:
+      context: ./admin-server
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    depends_on:
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_started
+#      mongo-init-replica:
+#        condition: service_completed_successfully
+
+    networks:
+      - mfa_network
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+
   authorization-server:
     build:
       context: ./authorization-server

@@ -76,8 +76,8 @@ func (s *Server) Login(ctx *gin.Context) {
 		return
 	}
 
-	var user *db.User
-	user, err := s.store.GetAdminByUsernameAndPassword(req.Username)
+	var admin db.Admin
+	admin, err := s.store.GetAdminByUsernameAndPassword(req.Username, req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
@@ -86,7 +86,7 @@ func (s *Server) Login(ctx *gin.Context) {
 	var loginToken string
 	loginToken, _, err = s.tokenMaker.CreateToken(
 		&token.Payload{
-			ID:        user.ID,
+			ID:        admin.ID,
 			Username:  "",
 			IssuedAt:  time.Now(),
 			ExpiredAt: time.Now().Add(8 * time.Hour),

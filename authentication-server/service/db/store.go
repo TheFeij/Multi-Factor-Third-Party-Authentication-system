@@ -415,30 +415,7 @@ func (s *Store) GetUserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func (s *Store) InsertActivityLog(log *ActivityLog) error {
-	// Get the activity_logs collection from the database
-	collection := s.Client.Database(s.configs.DatabaseName).Collection("activity_logs")
-
-	// Set CreatedAt and UpdatedAt fields before insertion
-	now := time.Now().UTC()
-	log.CreatedAt = now
-
-	// Insert the log document
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	result, err := collection.InsertOne(ctx, log)
-	if err != nil {
-		return err
-	}
-
-	log.ID = result.InsertedID.(primitive.ObjectID)
-
-	fmt.Println("Activity log inserted successfully")
-	return nil
-}
-
-func (s *Store) InsertThirdPartyLoginRequests(sessCtx mongo.SessionContext, req *ThirdPartyLoginRequests) error {
+func (s *Store) InsertThirdPartyLoginRequest(sessCtx mongo.SessionContext, req *ThirdPartyLoginRequest) error {
 	// Get the activity_logs collection from the database
 	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
 
@@ -457,50 +434,156 @@ func (s *Store) InsertThirdPartyLoginRequests(sessCtx mongo.SessionContext, req 
 	return nil
 }
 
-func (s *Store) RemoveThirdPartyLoginRequest(sessCtx mongo.SessionContext, username string, clientID int64) error {
-	// Get the third_party_login_requests collection from the database
-	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
+func (s *Store) InsertAppLoginRequests(req *AppLoginRequests) error {
+	// Get the activity_logs collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("app_login_requests")
 
-	// Create the filter to match the username and clientID
-	filter := bson.D{
-		{"username", username},
-		{"client_id", clientID},
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	// Perform the delete operation
-	_, err := collection.DeleteMany(sessCtx, filter)
+	// Set CreatedAt and UpdatedAt fields before insertion
+	now := time.Now().UTC()
+	req.Time = now
+
+	result, err := collection.InsertOne(ctx, req)
 	if err != nil {
 		return err
 	}
 
+	req.ID = result.InsertedID.(primitive.ObjectID)
+
+	fmt.Println("third party login request inserted successfully")
 	return nil
 }
 
-func (s *Store) GetThirdPartyLoginRequests(username string, clientID int64) (*ThirdPartyLoginRequests, error) {
-	// Get the users collection from the database
+func (s *Store) GetLastAppLoginRequestsForUser(username string) ([]AppLoginRequests, error) {
+	// Get the app_login_requests collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("app_login_requests")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Filter for the given username (replace "username" with the correct field name)
+	filter := bson.D{{"username", username}}
+
+	// Options to limit to 50 results and sort by Time in descending order
+	opts := options.Find().
+		SetSort(bson.D{{"time", -1}}).
+		SetLimit(50)
+
+	// Execute the query
+	cursor, err := collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	// Decode results into a slice of AppLoginRequests
+	var loginRequests []AppLoginRequests
+	if err = cursor.All(ctx, &loginRequests); err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Retrieved %d login requests for username: %s\n", len(loginRequests), username)
+	return loginRequests, nil
+}
+
+func (s *Store) GetThirdPartyLoginRequestWithSession(sessCtx mongo.SessionContext, username string, clientID int64) (*ThirdPartyLoginRequest, error) {
+	// Get the third_party_login_requests collection from the database
+	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
+
+	// Create a variable to hold the result
+	var lastRequest ThirdPartyLoginRequest
+
+	filter := bson.D{{"username", username}, {"client_id", clientID}}
+
+	opts := options.FindOne().SetSort(bson.D{{"created_at", -1}})
+
+	err := collection.FindOne(sessCtx, filter, opts).Decode(&lastRequest)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			fmt.Println("No login requests found for the user")
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	fmt.Println("Last login request for user retrieved successfully")
+	return &lastRequest, nil
+}
+
+func (s *Store) GetThirdPartyLoginRequest(username string, clientID int64) (*ThirdPartyLoginRequest, error) {
+	// Get the third_party_login_requests collection from the database
 	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
 
 	// Context for the query
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Variable to store the result
-	var req ThirdPartyLoginRequests
+	// Create a variable to hold the result
+	var lastRequest ThirdPartyLoginRequest
 
-	// Find the user by email
-	err := collection.FindOne(ctx, bson.M{"username": username, "client_id": clientID}).Decode(&req)
+	filter := bson.D{{"username", username}, {"client_id", clientID}}
+
+	opts := options.FindOne().SetSort(bson.D{{"created_at", -1}})
+
+	err := collection.FindOne(ctx, filter, opts).Decode(&lastRequest)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errors.New("user not found")
+			fmt.Println("No login requests found for the user")
+			return nil, nil
 		}
 		return nil, err
 	}
 
-	// Return the found user
-	return &req, nil
+	fmt.Println("Last login request for user retrieved successfully")
+	return &lastRequest, nil
 }
 
-func (s *Store) InsertSession(session *Session) error {
+//func (s *Store) RemoveThirdPartyLoginRequest(sessCtx mongo.SessionContext, username string, clientID int64) error {
+//	// Get the third_party_login_requests collection from the database
+//	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
+//
+//	// Create the filter to match the username and clientID
+//	filter := bson.D{
+//		{"username", username},
+//		{"client_id", clientID},
+//	}
+//
+//	// Perform the delete operation
+//	_, err := collection.DeleteMany(sessCtx, filter)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}
+
+//func (s *Store) GetThirdPartyLoginRequestWithSession(username string, clientID int64) (*ThirdPartyLoginRequest, error) {
+//	// Get the users collection from the database
+//	collection := s.Client.Database(s.configs.DatabaseName).Collection("third_party_login_requests")
+//
+//	// Context for the query
+//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//	defer cancel()
+//
+//	// Variable to store the result
+//	var req ThirdPartyLoginRequest
+//
+//	// Find the user by email
+//	err := collection.FindOne(ctx, bson.M{"username": username, "client_id": clientID}).Decode(&req)
+//	if err != nil {
+//		if errors.Is(err, mongo.ErrNoDocuments) {
+//			return nil, errors.New("user not found")
+//		}
+//		return nil, err
+//	}
+//
+//	// Return the found user
+//	return &req, nil
+//}
+
+func (s *Store) InsertActivityLog(session *ActivityLog) error {
 	// Get the sessions collection from the database
 	collection := s.Client.Database(s.configs.DatabaseName).Collection("sessions")
 
@@ -514,27 +597,6 @@ func (s *Store) InsertSession(session *Session) error {
 	defer cancel()
 
 	result, err := collection.InsertOne(ctx, session)
-	if err != nil {
-		return err
-	}
-
-	// Retrieve the inserted ID and update the session ID with it
-	session.ID = result.InsertedID.(primitive.ObjectID) // Convert the inserted ID to ObjectID
-
-	log.Info().Msg(fmt.Sprintf("session inserted to the database successfully: %v", session))
-	return nil
-}
-
-func (s *Store) InsertSessionWithSession(sessCtx mongo.SessionContext, session *Session) error {
-	// Get the sessions collection from the database
-	collection := s.Client.Database(s.configs.DatabaseName).Collection("sessions")
-
-	// Set CreatedAt and UpdatedAt fields before insertion
-	now := time.Now().UTC()
-	session.CreatedAt = now
-	session.DeletedAt = nil // Initial value is nil for DeletedAt
-
-	result, err := collection.InsertOne(sessCtx, session)
 	if err != nil {
 		return err
 	}

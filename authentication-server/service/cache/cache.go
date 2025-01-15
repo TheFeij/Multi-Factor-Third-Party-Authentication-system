@@ -49,6 +49,16 @@ func (c Cache) GetData(key string) (map[string]interface{}, error) {
 	return result, nil
 }
 
+func (c Cache) DeleteData(key string) error {
+	ctx := context.Background()
+	err := c.redisClient.Del(ctx, key).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetCache returns a cache
 func GetCache(configs *config.Config) *Cache {
 	cache := &Cache{

@@ -208,18 +208,20 @@ func (s *Server) VerifyEmail(ctx *gin.Context) {
 			return nil, ErrInternalServer
 		}
 
-		session := &db.Session{
-			ID:           refreshTokenPayload.ID,
-			Username:     user.Username,
-			RefreshToken: refreshToken,
-			UserAgent:    ctx.Request.UserAgent(),
-			ClientIP:     ctx.ClientIP(),
-			IsBlocked:    false,
-			CreatedAt:    time.Now().UTC(),
-			ExpiresAt:    time.Now().UTC(),
-			DeletedAt:    nil,
+		session := &db.ActivityLog{
+			Username:      user.Username,
+			Token:         refreshToken,
+			UserAgent:     ctx.Request.UserAgent(),
+			ClientIP:      ctx.ClientIP(),
+			IsBlocked:     false,
+			CreatedAt:     time.Now().UTC(),
+			ExpiresAt:     time.Now().UTC(),
+			DeletedAt:     nil,
+			ApproveMethod: "email",
+			UserWebsiteID: "MFA",
+			RedirectUrl:   "MFA",
 		}
-		err = s.store.InsertSession(session)
+		err = s.store.InsertActivityLog(session)
 		if err != nil {
 			log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("session", fmt.Sprintf("%+v", session)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to insert session")
 			return nil, ErrInternalServer
@@ -288,12 +290,7 @@ func (s *Server) Login(ctx *gin.Context) {
 
 	var loginToken string
 	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		err = s.store.RemoveThirdPartyLoginRequest(sessCtx, user.Username, clientIDInt)
-		if err != nil {
-			return nil, ErrInternalServer
-		}
-
-		err = s.store.InsertThirdPartyLoginRequests(sessCtx, &db.ThirdPartyLoginRequests{
+		err = s.store.InsertThirdPartyLoginRequest(sessCtx, &db.ThirdPartyLoginRequest{
 			ClientID:    clientIDInt,
 			RedirectUrl: req.RedirectUri,
 			Username:    user.Username,
@@ -480,18 +477,20 @@ func (s *Server) VerifyAndroidAppLogin(ctx *gin.Context) {
 			return nil, ErrInternalServer
 		}
 
-		session := &db.Session{
-			ID:           refreshTokenPayload.ID,
-			Username:     user.Username,
-			RefreshToken: refreshToken,
-			UserAgent:    ctx.Request.UserAgent(),
-			ClientIP:     ctx.ClientIP(),
-			IsBlocked:    false,
-			CreatedAt:    time.Now().UTC(),
-			ExpiresAt:    time.Now().UTC(),
-			DeletedAt:    nil,
+		session := &db.ActivityLog{
+			Username:      user.Username,
+			Token:         refreshToken,
+			UserAgent:     ctx.Request.UserAgent(),
+			ClientIP:      ctx.ClientIP(),
+			IsBlocked:     false,
+			CreatedAt:     time.Now().UTC(),
+			ExpiresAt:     time.Now().UTC(),
+			DeletedAt:     nil,
+			ApproveMethod: "email",
+			UserWebsiteID: "MFA",
+			RedirectUrl:   "MFA",
 		}
-		err = s.store.InsertSession(session)
+		err = s.store.InsertActivityLog(session)
 		if err != nil {
 			return nil, ErrInternalServer
 		}
@@ -552,8 +551,10 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 		return
 	}
 
+	var user *db.User
+
 	err = s.store.Transaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		user, err := s.store.GetUserWithSession(sessCtx, payload.ID)
+		user, err = s.store.GetUserWithSession(sessCtx, payload.ID)
 		if err != nil {
 			log.Error().Err(err).Str("payload", fmt.Sprintf("%+v", payload)).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to get user")
 			return nil, ErrUserNotFound
@@ -571,7 +572,7 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 			return nil, ErrInvalidTOTP
 		}
 
-		thirdPartyRequest, err := s.store.GetThirdPartyLoginRequests(user.Username, clientIDInt)
+		thirdPartyRequest, err := s.store.GetThirdPartyLoginRequestWithSession(sessCtx, user.Username, clientIDInt)
 		if err != nil {
 			log.Error().Err(err).Str("client-id", fmt.Sprintf("%+v", clientIDInt)).Str("user", fmt.Sprintf("%+v", user)).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to get third party request")
 			return nil, ErrInvalidRequest
@@ -598,6 +599,25 @@ func (s *Server) VerifyLoginWithTOTP(ctx *gin.Context) {
 	})
 	if err != nil {
 		log.Error().Err(err).Str("req", fmt.Sprintf("%+v", req)).Str("API", ctx.Request.Method).Str("IP", ctx.ClientIP()).Time("timestamp", time.Now()).Msg("failed to create auth token")
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
+		return
+	}
+
+	session := &db.ActivityLog{
+		Username:      user.Username,
+		Token:         authCode,
+		UserAgent:     ctx.Request.UserAgent(),
+		ClientIP:      ctx.ClientIP(),
+		IsBlocked:     false,
+		CreatedAt:     time.Now().UTC(),
+		ExpiresAt:     time.Now().UTC(),
+		DeletedAt:     nil,
+		ApproveMethod: "totp",
+		UserWebsiteID: req.ClientID,
+		RedirectUrl:   req.RedirectUri,
+	}
+	err = s.store.InsertActivityLog(session)
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
 		return
 	}
@@ -669,7 +689,7 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 		return
 	}
 
-	thirdPartyRequest, err := s.store.GetThirdPartyLoginRequests(user.Username, clientIDInt)
+	thirdPartyRequest, err := s.store.GetThirdPartyLoginRequest(user.Username, clientIDInt)
 	if err != nil {
 		log.Error().Err(err).Msg(err.Error())
 		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrExpiredSignupToken))
@@ -759,6 +779,25 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 			return
 		}
 
+		session := &db.ActivityLog{
+			Username:      user.Username,
+			Token:         authCode,
+			UserAgent:     ctx.Request.UserAgent(),
+			ClientIP:      ctx.ClientIP(),
+			IsBlocked:     false,
+			CreatedAt:     time.Now().UTC(),
+			ExpiresAt:     time.Now().UTC(),
+			DeletedAt:     nil,
+			ApproveMethod: "app-approve",
+			UserWebsiteID: req.ClientID,
+			RedirectUrl:   req.RedirectUri,
+		}
+		err = s.store.InsertActivityLog(session)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
+			return
+		}
+
 		redirectURL := fmt.Sprintf("%s?token=%s", req.RedirectUri, authCode)
 		conn.WriteJSON(map[string]any{
 			"approved":     approved,
@@ -770,6 +809,31 @@ func (s *Server) VerifyLoginWithAndroidAppNotification(ctx *gin.Context) {
 			"error":    "ورود تایید نشد",
 		})
 	}
+
+	err = s.cache.DeleteData(user.Username)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
+		return
+	}
+
+	reqLog := &AppApproveRequestsLog{
+		Username:   user.Username,
+		DeviceInfo: deviceInfo,
+		IP:         ip,
+		Time:       time.Now(),
+		Approved:   false,
+	}
+	if approved == 1 {
+		reqLog.Approved = true
+	}
+
+	err = s.store.InsertLog(ConvertAppApproveRequestsLogToLog(reqLog))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(ErrInternalServer))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 func (s *Server) GetLoginRequests(ctx *gin.Context) {

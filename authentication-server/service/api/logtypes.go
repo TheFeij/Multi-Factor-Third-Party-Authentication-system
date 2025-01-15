@@ -17,6 +17,7 @@ type AppApproveRequestsLog struct {
 
 func ConvertAppApproveRequestsLogToLog(appLog *AppApproveRequestsLog) db.Log {
 	return db.Log{
+		Type:       string(db.LoginSecondStepAppApprove),
 		Username:   appLog.Username,
 		DeviceInfo: appLog.DeviceInfo,
 		IP:         appLog.IP,

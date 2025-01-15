@@ -1,20 +1,13 @@
 package api
 
 import (
-	"authentication-server/service/db"
+	"mobile-app-server/db"
 	"time"
 )
 
 type VerifyEmailRequest struct {
 	SignupToken      string `json:"signup_token"`
 	VerificationCode string `json:"verification_code"`
-}
-
-type VerifyLoginRequest struct {
-	LoginToken  string `json:"login_token"`
-	TOTP        string `json:"totp"`
-	ClientID    string `json:"client_id"`
-	RedirectUri string `json:"redirect_uri"`
 }
 
 type VerifyAndroidLoginRequest struct {
@@ -74,6 +67,14 @@ type GetLoginRequests struct {
 	AccessToken string `json:"access_token"`
 }
 
+type GetApproveLogsReq struct {
+	AccessToken string `json:"access_token"`
+}
+
+type GetApproveLogsResp struct {
+	AccessToken string `json:"access_token"`
+}
+
 type ApproveLoginRequests struct {
 	AccessToken string `json:"access_token"`
 	Code        string `json:"code"`
@@ -95,11 +96,11 @@ type RefreshTokenResponse struct {
 	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }
 
-type GetUserRequest struct {
-	AccessToken string `json:"access_token,omitempty"`
-}
-
-type GetUserResponse struct {
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
+type ApproveLog struct {
+	Username    string    `json:"username,omitempty"`
+	DeviceInfo  string    `json:"device_info,omitempty"`
+	IP          string    `json:"ip,omitempty"`
+	Approved    bool      `json:"approved,omitempty"`
+	RedirectUrl string    `json:"redirect_url,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
 }

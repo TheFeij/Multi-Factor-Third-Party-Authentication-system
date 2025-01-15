@@ -17,6 +17,9 @@ type Config struct {
 	RedisDB                   int           `mapstructure:"REDIS_DB"`
 	RedisDialTimeout          time.Duration `mapstructure:"REDIS_DIAL_TIMEOUT"`
 	RedisReadTimeout          time.Duration `mapstructure:"REDIS_READ_TIMEOUT"`
+	EmailSenderName           string        `mapstructure:"EMAIL_SENDER_NAME"`
+	EmailSenderAddress        string        `mapstructure:"EMAIL_SENDER_ADDRESS"`
+	EmailSenderPassword       string        `mapstructure:"EMAIL_SENDER_PASSWORD"`
 	EncryptionKey             string        `mapstructure:"ENCRYPTION_KEY"`
 }
 

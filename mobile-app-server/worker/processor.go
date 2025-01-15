@@ -1,8 +1,6 @@
 package worker
 
 import (
-	db2 "authentication-server/service/db"
-	"authentication-server/service/email"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,6 +8,8 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
+	"mobile-app-server/db"
+	"mobile-app-server/email"
 )
 
 const (
@@ -19,11 +19,11 @@ const (
 
 type RedisTaskProcessor struct {
 	Server      *asynq.Server
-	Store       *db2.Store
+	Store       *db.Store
 	EmailSender *email.EmailSender
 }
 
-func NewRedisTaskProcessor(opt *asynq.RedisClientOpt, store *db2.Store, emailSender *email.EmailSender) *RedisTaskProcessor {
+func NewRedisTaskProcessor(opt *asynq.RedisClientOpt, store *db.Store, emailSender *email.EmailSender) *RedisTaskProcessor {
 	server := asynq.NewServer(opt, asynq.Config{
 		Queues: map[string]int{
 			CriticalQueue: 10,

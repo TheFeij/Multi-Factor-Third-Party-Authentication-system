@@ -97,7 +97,6 @@ type RefreshTokenResponse struct {
 }
 
 type ApproveLog struct {
-	Username    string    `json:"username,omitempty"`
 	DeviceInfo  string    `json:"device_info,omitempty"`
 	IP          string    `json:"ip,omitempty"`
 	Approved    bool      `json:"approved,omitempty"`

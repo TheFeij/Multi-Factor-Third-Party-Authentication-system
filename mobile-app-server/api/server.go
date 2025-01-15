@@ -56,7 +56,7 @@ func (s *Server) setupRouter() {
 	s.router.POST("api/verify-android-login", NewRateLimiter(15*time.Minute, 5), s.VerifyAndroidAppLogin)
 	s.router.POST("api/approve-login", NewRateLimiter(15*time.Minute, 5), s.ApproveLoginRequests)
 	s.router.POST("api/refresh-token", NewRateLimiter(15*time.Minute, 2), s.RefreshToken)
-	s.router.GET("api/get-approve-logs", NewRateLimiter(1*time.Minute, 3), s.GetApproveLogs)
+	s.router.POST("api/get-approve-logs", NewRateLimiter(1*time.Minute, 3), s.GetApproveLogs)
 }
 
 func (s *Server) Start(address, cert, key string) error {

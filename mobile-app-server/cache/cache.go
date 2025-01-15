@@ -1,11 +1,11 @@
 package cache
 
 import (
-	"authentication-server/service/config"
 	"context"
 	"encoding/json"
 	"github.com/redis/go-redis/v9"
 	"log"
+	"mobile-app-server/config"
 	"time"
 )
 

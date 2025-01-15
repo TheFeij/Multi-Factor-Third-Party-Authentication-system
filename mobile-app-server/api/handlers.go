@@ -632,7 +632,7 @@ func (s *Server) GetApproveLogs(ctx *gin.Context) {
 				"username", payload.Username,
 			},
 			{
-				"type", db.LoginSecondStepAppApprove,
+				"type", bson.D{{"$in", bson.A{db.LoginSecondStepAppApprove, db.LoginSecondStepTOTP}}},
 			},
 		},
 		bson.D{
@@ -651,9 +651,8 @@ func (s *Server) GetApproveLogs(ctx *gin.Context) {
 	resp := make([]ApproveLog, len(logs))
 	for index, l := range logs {
 		resp[index] = ApproveLog{
-			Username:    l.Username,
 			DeviceInfo:  l.DeviceInfo,
-			IP:          l.Username,
+			IP:          l.IP,
 			Approved:    l.Approved,
 			RedirectUrl: l.RedirectUrl,
 			CreatedAt:   l.CreatedAt,

@@ -16,7 +16,6 @@ services:
         condition: service_started
 #      mongo-init-replica:
 #        condition: service_completed_successfully
-
     networks:
       - mfa_network
     deploy:
@@ -24,6 +23,26 @@ services:
         limits:
           memory: 512m
           cpus: "0.5"
+
+
+  mobile-app-server:
+      build:
+        context: ./mobile-app-server
+        dockerfile: Dockerfile
+      ports:
+        - "8083:8083"
+      depends_on:
+        mongo:
+          condition: service_started
+        redis:
+          condition: service_started
+      networks:
+        - mfa_network
+      deploy:
+        resources:
+          limits:
+            memory: 512m
+            cpus: "0.5"
 
   admin-server:
     build:
